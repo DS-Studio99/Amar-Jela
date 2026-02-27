@@ -1,7 +1,7 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { createServerClient } from '@supabase/ssr';
 
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
     let supabaseResponse = NextResponse.next({ request });
 
     // Skip authentication logic if environment variables are missing (prevents crash on Vercel before setup)
@@ -36,7 +36,7 @@ export async function middleware(request: NextRequest) {
     } catch (e) {
         // If Supabase env vars are missing on Vercel, the placeholder URL fetch will fail.
         // We catch it so the site still loads (as unauthenticated) rather than throwing 500.
-        console.error('Middleware Supabase Error:', e);
+        console.error('Proxy Supabase Error:', e);
     }
 
     const { pathname } = request.nextUrl;
