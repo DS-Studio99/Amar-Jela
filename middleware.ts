@@ -4,57 +4,61 @@ import { createServerClient } from '@supabase/ssr';
 export async function middleware(request: NextRequest) {
     let supabaseResponse = NextResponse.next({ request });
 
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder.supabase.co';
-    const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'placeholder';
+    // Skip authentication logic if environment variables are missing (prevents crash on Vercel before setup)
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
-    // Skip Supabase auth check if credentials are not configured
-    if (supabaseUrl === 'https://placeholder.supabase.co' || supabaseKey === 'placeholder') {
+    if (!supabaseUrl || !supabaseAnonKey || supabaseUrl.includes('placeholder')) {
         return supabaseResponse;
     }
 
-    try {
-        const supabase = createServerClient(
-            supabaseUrl,
-            supabaseKey,
-            {
-                cookies: {
-                    getAll() { return request.cookies.getAll(); },
-                    setAll(cookiesToSet: any[]) {
-                        cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value));
-                        supabaseResponse = NextResponse.next({ request });
-                        cookiesToSet.forEach(({ name, value, options }) =>
-                            supabaseResponse.cookies.set(name, value, options)
-                        );
-                    },
+    const supabase = createServerClient(
+        supabaseUrl,
+        supabaseAnonKey,
+        {
+            cookies: {
+                getAll() { return request.cookies.getAll(); },
+                setAll(cookiesToSet: any[]) {
+                    cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value));
+                    supabaseResponse = NextResponse.next({ request });
+                    cookiesToSet.forEach(({ name, value, options }) =>
+                        supabaseResponse.cookies.set(name, value, options)
+                    );
                 },
-            }
-        );
-
-        const { data: { user } } = await supabase.auth.getUser();
-
-        const { pathname } = request.nextUrl;
-
-        // Protected user routes
-        const userRoutes = ['/dashboard', '/service', '/settings', '/profile', '/notifications', '/contact'];
-        const isUserRoute = userRoutes.some(r => pathname.startsWith(r));
-
-        // Admin routes (excluding /admin login page)
-        const isAdminRoute = pathname.startsWith('/admin') && pathname !== '/admin';
-
-        if (isUserRoute && !user) {
-            return NextResponse.redirect(new URL('/login', request.url));
+            },
         }
+    );
 
-        if (isAdminRoute && !user) {
-            return NextResponse.redirect(new URL('/admin', request.url));
-        }
+    let user = null;
+    try {
+        const { data } = await supabase.auth.getUser();
+        user = data.user;
+    } catch (e) {
+        // If Supabase env vars are missing on Vercel, the placeholder URL fetch will fail.
+        // We catch it so the site still loads (as unauthenticated) rather than throwing 500.
+        console.error('Middleware Supabase Error:', e);
+    }
 
-        // If logged-in user visits login/register, redirect to dashboard
-        if (user && (pathname === '/login' || pathname === '/register')) {
-            return NextResponse.redirect(new URL('/dashboard', request.url));
-        }
-    } catch (err) {
-        console.error('Middleware Supabase Error:', err);
+    const { pathname } = request.nextUrl;
+
+    // Protected user routes
+    const userRoutes = ['/dashboard', '/service', '/settings', '/profile', '/notifications', '/contact'];
+    const isUserRoute = userRoutes.some(r => pathname.startsWith(r));
+
+    // Admin routes (excluding /admin login page)
+    const isAdminRoute = pathname.startsWith('/admin') && pathname !== '/admin';
+
+    if (isUserRoute && !user) {
+        return NextResponse.redirect(new URL('/login', request.url));
+    }
+
+    if (isAdminRoute && !user) {
+        return NextResponse.redirect(new URL('/admin', request.url));
+    }
+
+    // If logged-in user visits login/register, redirect to dashboard
+    if (user && (pathname === '/login' || pathname === '/register')) {
+        return NextResponse.redirect(new URL('/dashboard', request.url));
     }
 
     return supabaseResponse;
