@@ -19,6 +19,7 @@ export default function AdminDistrictsClient({ categories, divisions }: Props) {
     const [editId, setEditId] = useState<string | null>(null);
     const [isEdit, setIsEdit] = useState(false);
     const [isSponsored, setIsSponsored] = useState(false);
+    const [sponsoredUntil, setSponsoredUntil] = useState('');
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
     const supabase = createClient();
@@ -43,6 +44,7 @@ export default function AdminDistrictsClient({ categories, divisions }: Props) {
         setEditId(null);
         setIsEdit(false);
         setIsSponsored(false);
+        setSponsoredUntil('');
         setModal(true);
         setError('');
     }
@@ -59,6 +61,7 @@ export default function AdminDistrictsClient({ categories, divisions }: Props) {
         setEditId(item.id);
         setIsEdit(true);
         setIsSponsored(!!item.is_sponsored);
+        setSponsoredUntil(item.sponsored_until ? item.sponsored_until.split('T')[0] : '');
         setModal(true);
         setError('');
     }
@@ -88,6 +91,7 @@ export default function AdminDistrictsClient({ categories, divisions }: Props) {
                 address: formData.address || '',
                 description: formData.description || '',
                 is_sponsored: isSponsored,
+                sponsored_until: isSponsored && sponsoredUntil ? new Date(sponsoredUntil).toISOString() : null,
                 metadata,
                 updated_at: new Date().toISOString(),
             }).eq('id', editId);
@@ -101,6 +105,7 @@ export default function AdminDistrictsClient({ categories, divisions }: Props) {
                 address: formData.address || '',
                 description: formData.description || '',
                 is_sponsored: isSponsored,
+                sponsored_until: isSponsored && sponsoredUntil ? new Date(sponsoredUntil).toISOString() : null,
                 metadata,
                 submitted_by_name: 'Admin',
                 status: 'approved',
@@ -215,11 +220,24 @@ export default function AdminDistrictsClient({ categories, divisions }: Props) {
                                 </div>
                             ))}
 
-                            <div className="flex items-center gap-2 mt-4 p-3 bg-amber-50 rounded-xl border border-amber-100">
-                                <input type="checkbox" id="isSponsored" checked={isSponsored} onChange={e => setIsSponsored(e.target.checked)} className="w-5 h-5 text-amber-600 rounded border-amber-300 focus:ring-amber-500" />
-                                <label htmlFor="isSponsored" className="text-sm font-bold text-amber-900 cursor-pointer">
-                                    ⭐ এই আইটেমটিকে স্পনসরড (প্রিমিয়াম) হিসেবে চিহ্নিত করুন
-                                </label>
+                            <div className="mt-4 p-4 bg-amber-50 rounded-xl border border-amber-100 flex flex-col gap-3">
+                                <div className="flex items-center gap-2">
+                                    <input type="checkbox" id="isSponsored" checked={isSponsored} onChange={e => setIsSponsored(e.target.checked)} className="w-5 h-5 text-amber-600 rounded border-amber-300 focus:ring-amber-500" />
+                                    <label htmlFor="isSponsored" className="text-sm font-bold text-amber-900 cursor-pointer">
+                                        ⭐ এই আইটেমটিকে স্পনসরড (প্রিমিয়াম) হিসেবে চিহ্নিত করুন
+                                    </label>
+                                </div>
+                                {isSponsored && (
+                                    <div className="ml-7 flex items-center gap-3">
+                                        <label className="text-xs font-semibold text-amber-800">মেয়াদ (ঐচ্ছিক):</label>
+                                        <input
+                                            type="date"
+                                            className="px-3 py-1.5 border border-amber-200 rounded-lg text-sm bg-white focus:outline-none focus:border-amber-400"
+                                            value={sponsoredUntil}
+                                            onChange={e => setSponsoredUntil(e.target.value)}
+                                        />
+                                    </div>
+                                )}
                             </div>
                         </div>
                         <div className="flex gap-3 p-5 border-t border-gray-100 flex-shrink-0">

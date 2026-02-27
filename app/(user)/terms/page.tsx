@@ -4,7 +4,7 @@ export default function TermsPage() {
     return (
         <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white">
             {/* Fixed Header */}
-            <div className="sticky top-0 z-30 bg-white/95 backdrop-blur-md border-b border-gray-100" style={{ boxShadow: '0 1px 6px rgba(0,0,0,0.04)' }}>
+            <div className="sticky top-12 z-30 bg-white/95 backdrop-blur-md border-b border-gray-100" style={{ boxShadow: '0 1px 6px rgba(0,0,0,0.04)' }}>
                 <div className="max-w-[480px] mx-auto px-3 py-2.5 flex items-center gap-3">
                     <Link href="/dashboard" className="text-gray-400 hover:text-gray-600 transition-colors text-sm">←</Link>
                     <h1 className="text-sm font-bold text-gray-700">📜 শর্তাবলী</h1>

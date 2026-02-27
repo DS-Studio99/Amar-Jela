@@ -203,35 +203,34 @@ export default function ServiceClient({ category, items, district, districtId, u
         const accentColor = category?.color || '#1a9e5c';
 
         return (
-            <div key={item.id} className={`relative bg-white rounded-2xl overflow-hidden transition-all duration-300 group hover:-translate-y-0.5 ${item.is_sponsored ? 'ring-2 ring-amber-400/30 shadow-lg shadow-amber-100' : 'shadow-md shadow-gray-200/60 hover:shadow-xl hover:shadow-gray-300/40'}`} style={{ borderLeft: `3px solid ${accentColor}` }}>
+            <div key={item.id} className={`relative bg-white rounded-xl overflow-hidden transition-all duration-200 group hover:-translate-y-0.5 ${item.is_sponsored ? 'ring-2 ring-amber-400/30 shadow-md shadow-amber-100' : 'shadow-sm shadow-gray-200/50 hover:shadow-md'}`} style={{ borderLeft: `3px solid ${accentColor}` }}>
                 {/* Sponsored badge */}
                 {item.is_sponsored && (
-                    <div className="absolute top-0 right-0 bg-gradient-to-l from-amber-400 to-orange-400 text-white text-[9px] font-bold px-3 py-1 rounded-bl-2xl flex items-center gap-1 shadow-sm z-10">
+                    <div className="absolute top-0 right-0 bg-gradient-to-l from-amber-400 to-orange-400 text-white text-[8px] font-bold px-2 py-0.5 rounded-bl-xl flex items-center gap-0.5 shadow-sm z-10">
                         <span>⭐</span> <span>প্রিমিয়াম</span>
                     </div>
                 )}
 
                 {/* Card Header */}
-                <div className="p-4 pb-2.5">
-                    <div className="flex items-start gap-3">
+                <div className="p-3 pb-2">
+                    <div className="flex items-start gap-2.5">
                         {/* Icon */}
                         <div
-                            className="w-12 h-12 rounded-2xl flex items-center justify-center text-2xl flex-shrink-0 transition-all duration-300 group-hover:scale-110 group-hover:rotate-3"
+                            className="w-9 h-9 rounded-xl flex items-center justify-center text-lg flex-shrink-0 transition-all duration-200 group-hover:scale-105"
                             style={{
                                 background: `linear-gradient(135deg, ${accentColor}12, ${accentColor}25)`,
-                                boxShadow: `0 4px 12px ${accentColor}15`,
                             }}
                         >
                             {category?.icon}
                         </div>
                         {/* Title & Phone */}
-                        <div className="flex-1 min-w-0 pr-8">
-                            <h3 className="font-extrabold text-gray-800 text-[15px] leading-snug group-hover:text-gray-900 transition-colors">{item.title}</h3>
+                        <div className="flex-1 min-w-0 pr-7">
+                            <h3 className="font-bold text-gray-800 text-[13px] leading-snug">{item.title}</h3>
                             {isDoctor && meta.specialty && (
-                                <span className="inline-flex items-center gap-1 mt-1 px-2 py-0.5 bg-blue-50 text-blue-600 rounded-lg text-[11px] font-bold">🩺 {meta.specialty}</span>
+                                <span className="inline-flex items-center gap-1 mt-0.5 px-1.5 py-0.5 bg-blue-50 text-blue-600 rounded text-[10px] font-bold">🩺 {meta.specialty}</span>
                             )}
                             {item.phone && (
-                                <a href={`tel:${item.phone}`} className="flex items-center gap-1.5 mt-1.5 text-primary-600 text-sm font-semibold hover:underline">
+                                <a href={`tel:${item.phone}`} className="flex items-center gap-1 mt-1 text-primary-600 text-xs font-semibold hover:underline">
                                     📞 {item.phone}
                                 </a>
                             )}
@@ -239,10 +238,10 @@ export default function ServiceClient({ category, items, district, districtId, u
                         {/* Save Button */}
                         <button
                             onClick={(e) => { e.stopPropagation(); toggleSave(item); }}
-                            className={`absolute top-3 right-3 w-8 h-8 rounded-full flex items-center justify-center transition-all duration-200 ${item.isSaved ? 'bg-red-50 text-red-500 shadow-sm shadow-red-100' : 'bg-gray-50 text-gray-300 hover:bg-red-50 hover:text-red-400'}`}
+                            className={`absolute top-2.5 right-2.5 w-7 h-7 rounded-full flex items-center justify-center transition-all duration-200 ${item.isSaved ? 'bg-red-50 text-red-500' : 'bg-gray-50 text-gray-300 hover:bg-red-50 hover:text-red-400'}`}
                             title={item.isSaved ? "সেভ করা হয়েছে" : "সেভ করে রাখুন"}
                         >
-                            <svg className={`w-4.5 h-4.5 ${item.isSaved ? 'fill-current' : 'fill-none stroke-current stroke-2'}`} viewBox="0 0 24 24">
+                            <svg className={`w-3.5 h-3.5 ${item.isSaved ? 'fill-current' : 'fill-none stroke-current stroke-2'}`} viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" d="M11.998 21.054c-1.448-1.396-8.998-8.151-8.998-13.054 0-2.761 2.239-5 5-5 2.053 0 3.829 1.258 4.75 3.125A5.253 5.253 0 0 1 17.5 3c2.761 0 5 2.239 5 5 0 4.903-7.55 11.658-8.998 13.054a1.496 1.496 0 0 1-1.504 0Z" />
                             </svg>
                         </button>
@@ -251,11 +250,11 @@ export default function ServiceClient({ category, items, district, districtId, u
 
                 {/* Highlighted Fields (Visit time, Fee, etc.) */}
                 {(isDoctor || Object.keys(meta).length > 0) && catConfig.fields.filter(f => f.highlight && meta[f.key]).length > 0 && (
-                    <div className="mx-4 mb-2 flex flex-wrap gap-1.5">
+                    <div className="mx-3 mb-1.5 flex flex-wrap gap-1">
                         {catConfig.fields.filter(f => f.highlight && meta[f.key]).map(field => (
-                            <div key={field.key} className="inline-flex items-center gap-1.5 py-1 px-2.5 bg-gradient-to-r from-amber-50 to-orange-50/80 border border-amber-200/50 rounded-lg">
-                                <span className="text-[10px] font-bold text-amber-600">{field.label}:</span>
-                                <span className="text-[10px] font-extrabold text-amber-800">{meta[field.key]}</span>
+                            <div key={field.key} className="inline-flex items-center gap-1 py-0.5 px-2 bg-amber-50 border border-amber-200/50 rounded">
+                                <span className="text-[9px] font-bold text-amber-600">{field.label}:</span>
+                                <span className="text-[9px] font-extrabold text-amber-800">{meta[field.key]}</span>
                             </div>
                         ))}
                     </div>
@@ -263,12 +262,12 @@ export default function ServiceClient({ category, items, district, districtId, u
 
                 {/* Address */}
                 {item.address && (
-                    <div className="mx-4 mb-2">
+                    <div className="mx-3 mb-1.5">
                         <a
                             href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(item.address + (district?.name ? `, ${district.name}` : ''))}`}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="text-[11px] text-gray-500 flex items-start gap-1.5 hover:text-primary-600 transition-colors group/addr"
+                            className="text-[10px] text-gray-500 flex items-start gap-1 hover:text-primary-600 transition-colors group/addr"
                             title="ম্যাপে দেখুন"
                         >
                             <span className="flex-shrink-0 mt-0.5 group-hover/addr:scale-110 transition-transform">📍</span>
@@ -279,9 +278,9 @@ export default function ServiceClient({ category, items, district, districtId, u
 
                 {/* Meta fields (non-highlighted) */}
                 {Object.keys(meta).length > 0 && (
-                    <div className="mx-4 mb-2 flex flex-wrap gap-1">
+                    <div className="mx-3 mb-1.5 flex flex-wrap gap-1">
                         {catConfig.fields.filter(f => !f.highlight && f.key !== 'title' && f.key !== 'phone' && f.key !== 'address' && f.key !== 'description' && meta[f.key]).map(field => (
-                            <span key={field.key} className="inline-flex items-center px-2 py-0.5 bg-gray-50 text-gray-600 rounded-md text-[10px] font-medium border border-gray-100">
+                            <span key={field.key} className="inline-flex items-center px-1.5 py-0.5 bg-gray-50 text-gray-600 rounded text-[9px] font-medium border border-gray-100">
                                 {field.label.replace(/[⏰💰📞🩸🛣️🛤️🎟️📍🏢🎓📅💍💼📰🏫📚🛍️📦👮📱🚗🍽️🏊🚨📞]/g, '').trim()}: {meta[field.key]}
                             </span>
                         ))}
@@ -290,17 +289,17 @@ export default function ServiceClient({ category, items, district, districtId, u
 
                 {/* Description (truncated) */}
                 {item.description && (
-                    <div className="mx-4 mb-2">
-                        <p className="text-[11px] text-gray-600 bg-gray-50/80 p-2.5 rounded-xl line-clamp-2 leading-relaxed">{item.description}</p>
+                    <div className="mx-3 mb-1.5">
+                        <p className="text-[10px] text-gray-600 bg-gray-50/80 p-2 rounded-lg line-clamp-2 leading-relaxed">{item.description}</p>
                     </div>
                 )}
 
-                {/* Card Footer: Detail & Actions */}
-                <div className="px-4 pb-3 pt-1 flex items-center justify-between border-t border-gray-50 mt-1">
-                    <div className="flex items-center gap-2 text-[10px] text-gray-400">
+                {/* Card Footer */}
+                <div className="px-3 pb-2.5 pt-0.5 flex items-center justify-between">
+                    <div className="flex items-center gap-2 text-[9px] text-gray-400">
                         {item.views !== undefined && <span>👁 {item.views}</span>}
                     </div>
-                    <button onClick={() => setDetailItem(item)} className="text-[11px] text-primary-600 font-bold hover:text-primary-700 flex items-center gap-1 bg-primary-50/80 px-3 py-1.5 rounded-lg hover:bg-primary-100 transition-all active:scale-95">
+                    <button onClick={() => setDetailItem(item)} className="text-[10px] text-primary-600 font-bold hover:text-primary-700 flex items-center gap-1 bg-primary-50/80 px-2.5 py-1 rounded-lg hover:bg-primary-100 transition-all active:scale-95">
                         বিস্তারিত →
                     </button>
                 </div>
@@ -331,8 +330,8 @@ export default function ServiceClient({ category, items, district, districtId, u
                 </div>
             )}
 
-            {/* Back + Header — fixed bar that never hides on scroll */}
-            <div className="fixed top-0 left-0 right-0 z-30 bg-white/95 backdrop-blur-md border-b border-gray-100" style={{ boxShadow: '0 1px 6px rgba(0,0,0,0.04)' }}>
+            {/* Back + Header — fixed below UserHeader (h-12) */}
+            <div className="fixed top-12 left-0 right-0 z-30 bg-white/95 backdrop-blur-md border-b border-gray-100" style={{ boxShadow: '0 1px 6px rgba(0,0,0,0.04)' }}>
                 <div className="max-w-[480px] mx-auto px-3 py-1.5 flex items-center justify-between">
                     <Link href="/dashboard" className="flex items-center gap-0.5 text-gray-400 hover:text-gray-600 transition-colors text-[11px] font-medium">
                         ← ফিরে যান
@@ -346,11 +345,11 @@ export default function ServiceClient({ category, items, district, districtId, u
                 </div>
             </div>
 
-            {/* Spacer for fixed header */}
-            <div className="h-10" />
+            {/* Spacer for both headers */}
+            <div className="h-[40px]" />
 
             {/* Content List */}
-            <div className="p-3 space-y-3">
+            <div className="p-2.5 space-y-2">
                 {items.length === 0 ? (
                     <div className="flex flex-col items-center justify-center py-16 text-gray-400">
                         <div className="text-6xl mb-4 opacity-30">{category?.icon || '📭'}</div>

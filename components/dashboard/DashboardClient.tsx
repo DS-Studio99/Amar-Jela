@@ -7,6 +7,7 @@ import { Category, Notice, Banner, Ad } from '@/types';
 import { District } from '@/types';
 
 import { createClient } from '@/lib/supabase/client';
+import { SupabaseClient } from '@supabase/supabase-js';
 
 interface Props {
     categories: Category[];
@@ -15,6 +16,62 @@ interface Props {
     ads?: Ad[];
     district: (District & { divisionId: string; divisionName: string }) | null;
     districtId: string;
+}
+
+// Auto-rotating ad carousel component
+function AdCarousel({ ads, sizeMap, supabase }: { ads: Ad[]; sizeMap: Record<string, { w: string; h: string }>; supabase: SupabaseClient }) {
+    const [index, setIndex] = useState(0);
+    const [fade, setFade] = useState(true);
+
+    useEffect(() => {
+        if (ads.length <= 1) return;
+        const timer = setInterval(() => {
+            setFade(false);
+            setTimeout(() => {
+                setIndex(prev => (prev + 1) % ads.length);
+                setFade(true);
+            }, 300);
+        }, 5000);
+        return () => clearInterval(timer);
+    }, [ads.length]);
+
+    const ad = ads[index % ads.length];
+    if (!ad) return null;
+    const size = sizeMap[ad.display_size || '320x100'] || sizeMap['320x100'];
+
+    const img = (
+        /* eslint-disable-next-line @next/next/no-img-element */
+        <img src={ad.image_url} alt={ad.title || 'বিজ্ঞাপন'} className="w-full h-full object-cover" />
+    );
+
+    return (
+        <div className="flex items-center justify-center">
+            <div
+                className={`relative rounded-xl overflow-hidden shadow-sm border border-gray-100 transition-opacity duration-300 ${fade ? 'opacity-100' : 'opacity-0'}`}
+                style={{ width: size.w, height: size.h }}
+            >
+                {ad.click_url ? (
+                    <a
+                        href={ad.click_url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        onClick={() => supabase.rpc('increment_ad_clicks', { ad_id: ad.id }).then()}
+                        className="block w-full h-full"
+                    >
+                        {img}
+                    </a>
+                ) : img}
+                <div className="absolute bottom-0.5 right-1.5 bg-black/40 text-white text-[7px] px-1 py-0.5 rounded font-medium backdrop-blur-sm">বিজ্ঞাপন</div>
+                {ads.length > 1 && (
+                    <div className="absolute bottom-1 left-1/2 -translate-x-1/2 flex gap-1">
+                        {ads.map((_, i) => (
+                            <div key={i} className={`w-1 h-1 rounded-full transition-all ${i === index % ads.length ? 'bg-white w-2.5' : 'bg-white/40'}`} />
+                        ))}
+                    </div>
+                )}
+            </div>
+        </div>
+    );
 }
 
 const FALLBACK_IMAGES = [
@@ -43,21 +100,29 @@ export default function DashboardClient({ categories, notices, banners = [], ads
         if (!hospital.trim() || !phone.trim()) { alert('স্থান এবং মোবাইল নম্বর দিন'); return; }
 
         setRequesting(true);
-        const { data: users } = await supabase.from('profiles').select('id').eq('district_id', districtId);
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) {
+            alert('অনুগ্রহ করে লগইন করুন');
+            setRequesting(false);
+            return;
+        }
 
-        if (users && users.length > 0) {
-            const notifications = users.map(u => ({
-                user_id: u.id,
-                title: '🆘 জরুরি রক্তের প্রয়োজন!',
-                message: `রক্তের গ্রুপ: ${bloodGroup}\nরোগী আছে: ${hospital}\nযোগাযোগ: ${phone}`,
-                type: 'emergency',
-            }));
-            await supabase.from('user_notifications').insert(notifications);
-            alert('আপনার অনুরোধ বর্তমান জেলার সকল অ্যাপ ব্যবহারকারীর কাছে নোটিফিকেশন হিসেবে পাঠানো হয়েছে।');
+        const { error } = await supabase.from('blood_requests').insert({
+            user_id: user.id,
+            district_id: districtId,
+            blood_group: bloodGroup,
+            hospital: hospital.trim(),
+            phone: phone.trim(),
+            status: 'pending'
+        });
+
+        if (error) {
+            console.error(error);
+            alert('অনুরোধ পাঠানো সম্ভব হয়নি। আবার চেষ্টা করুন।');
+        } else {
+            alert('আপনার রক্তের অনুরোধ সফলভাবে জমা হয়েছে! অ্যাডমিন অনুমোদন করলে সকলকে নোটিফিকেশন পাঠানো হবে।');
             setBloodModalOpen(false);
             setHospital(''); setPhone('');
-        } else {
-            alert('আপনার জেলায় কোনো ব্যবহারকারী পাওয়া যায়নি।');
         }
         setRequesting(false);
     }
@@ -170,78 +235,92 @@ export default function DashboardClient({ categories, notices, banners = [], ads
                 </div>
             </div>
 
-            {/* Ad Banner (300x250) */}
-            {ads.length > 0 && (
-                <div className="px-2 mt-2">
-                    <div className="flex items-center justify-center">
-                        <div className="relative rounded-2xl overflow-hidden shadow-md border border-gray-100" style={{ width: '300px', height: '250px' }}>
-                            {(() => {
-                                const activeAds = ads.filter(a => a.is_active);
-                                if (activeAds.length === 0) return null;
-                                const ad = activeAds[Math.floor(Math.random() * activeAds.length)];
-                                const content = (
-                                    /* eslint-disable-next-line @next/next/no-img-element */
-                                    <img src={ad.image_url} alt={ad.title || 'বিজ্ঞাপন'} className="w-full h-full object-cover" />
-                                );
-                                return ad.click_url ? (
-                                    <a
-                                        href={ad.click_url}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        onClick={() => supabase.rpc('increment_ad_clicks', { ad_id: ad.id }).then()}
-                                        className="block w-full h-full"
-                                    >
-                                        {content}
-                                    </a>
-                                ) : content;
-                            })()}
-                            <div className="absolute bottom-1 right-2 bg-black/40 text-white text-[8px] px-1.5 py-0.5 rounded font-medium backdrop-blur-sm">বিজ্ঞাপন</div>
-                        </div>
-                    </div>
-                </div>
-            )}
+            {/* Render ad carousel helper */}
+            {(() => {
+                const activeAds = ads.filter(a => a.is_active);
 
-            {/* Category Groups — 4 per row, neon glow */}
-            {Object.entries(groups).map(([groupName, cats]) => (
-                <div key={groupName} className="px-2 mt-1.5 mb-2">
-                    {/* Group Header */}
-                    <div className="flex items-center gap-1.5 mb-2 px-1">
-                        <div className="w-0.5 h-4 bg-gradient-to-b from-primary-400 to-primary-600 rounded-full" />
-                        <h3 className="text-[11px] font-bold text-gray-600">{groupName}</h3>
-                        <div className="h-px flex-1 bg-gray-100" />
-                    </div>
+                // Group ads by display_group
+                const topAds = activeAds.filter(a => !a.display_group);
+                const groupedAds: Record<string, typeof activeAds> = {};
+                activeAds.filter(a => a.display_group).forEach(ad => {
+                    const g = ad.display_group!;
+                    if (!groupedAds[g]) groupedAds[g] = [];
+                    groupedAds[g].push(ad);
+                });
 
-                    {/* Category Grid — 4 columns, compact */}
-                    <div className="grid grid-cols-4 gap-1.5">
-                        {cats.map((cat, idx) => (
-                            <Link
-                                key={cat.id}
-                                href={`/service/${cat.id}?district=${districtId}`}
-                                className="group relative flex flex-col items-center gap-1 p-2 bg-white rounded-xl border border-gray-100/80 hover:border-transparent active:scale-95 transition-all duration-300"
-                                style={{ animationDelay: `${idx * 30}ms` }}
-                            >
-                                {/* Icon Container — smaller with neon glow */}
-                                <div
-                                    className="w-9 h-9 rounded-xl flex items-center justify-center text-[17px] transition-all duration-300 group-hover:-translate-y-0.5 group-hover:shadow-lg"
-                                    style={{
-                                        background: `linear-gradient(135deg, ${cat.color}15, ${cat.color}30)`,
-                                        boxShadow: `0 2px 8px ${cat.color}10`,
-                                    }}
-                                >
-                                    {cat.icon}
+                const renderAdCarousel = (adList: typeof activeAds) => {
+                    if (adList.length === 0) return null;
+                    const sizeMap: Record<string, { w: string; h: string }> = {
+                        '300x250': { w: '300px', h: '250px' },
+                        '320x100': { w: '320px', h: '100px' },
+                        '468x60': { w: '100%', h: '60px' },
+                        'full': { w: '100%', h: '120px' },
+                    };
+
+                    return (
+                        <AdCarousel ads={adList} sizeMap={sizeMap} supabase={supabase} />
+                    );
+                };
+
+                return (
+                    <>
+                        {/* Top ads (no group) */}
+                        {topAds.length > 0 && (
+                            <div className="px-2 mt-2">
+                                {renderAdCarousel(topAds)}
+                            </div>
+                        )}
+
+                        {/* Category Groups with group-specific ads */}
+                        {Object.entries(groups).map(([groupName, cats]) => (
+                            <div key={groupName}>
+                                <div className="px-2 mt-1.5 mb-2">
+                                    {/* Group Header */}
+                                    <div className="flex items-center gap-1.5 mb-2 px-1">
+                                        <div className="w-0.5 h-4 bg-gradient-to-b from-primary-400 to-primary-600 rounded-full" />
+                                        <h3 className="text-[11px] font-bold text-gray-600">{groupName}</h3>
+                                        <div className="h-px flex-1 bg-gray-100" />
+                                    </div>
+
+                                    {/* Category Grid — 4 columns */}
+                                    <div className="grid grid-cols-4 gap-1.5">
+                                        {cats.map((cat, idx) => (
+                                            <Link
+                                                key={cat.id}
+                                                href={`/service/${cat.id}?district=${districtId}`}
+                                                className="group relative flex flex-col items-center gap-1 p-2 bg-white rounded-xl border border-gray-100/80 hover:border-transparent active:scale-95 transition-all duration-300"
+                                                style={{ animationDelay: `${idx * 30}ms` }}
+                                            >
+                                                <div
+                                                    className="w-9 h-9 rounded-xl flex items-center justify-center text-[17px] transition-all duration-300 group-hover:-translate-y-0.5 group-hover:shadow-lg"
+                                                    style={{
+                                                        background: `linear-gradient(135deg, ${cat.color}15, ${cat.color}30)`,
+                                                        boxShadow: `0 2px 8px ${cat.color}10`,
+                                                    }}
+                                                >
+                                                    {cat.icon}
+                                                </div>
+                                                <span className="text-[9px] font-semibold text-gray-600 text-center leading-tight group-hover:text-gray-800 transition-colors line-clamp-2">{cat.name}</span>
+                                                <div
+                                                    className="absolute inset-0 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none"
+                                                    style={{ boxShadow: `0 0 0 1px ${cat.color}40, 0 0 15px ${cat.color}20, inset 0 0 10px ${cat.color}08` }}
+                                                />
+                                            </Link>
+                                        ))}
+                                    </div>
                                 </div>
-                                {/* Name */}
-                                <span className="text-[9px] font-semibold text-gray-600 text-center leading-tight group-hover:text-gray-800 transition-colors line-clamp-2">{cat.name}</span>
-                                {/* Neon hover glow */}
-                                <div
-                                    className="absolute inset-0 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none"
-                                    style={{ boxShadow: `0 0 0 1px ${cat.color}40, 0 0 15px ${cat.color}20, inset 0 0 10px ${cat.color}08` }}
-                                />
-                            </Link>
+
+                                {/* Ads for this group */}
+                                {groupedAds[groupName] && groupedAds[groupName].length > 0 && (
+                                    <div className="px-2 mb-2">
+                                        {renderAdCarousel(groupedAds[groupName])}
+                                    </div>
+                                )}
+                            </div>
                         ))}
-                    </div>
-                </div>
-            ))}
+                    </>
+                );
+            })()}
 
             {/* Gov Emergency Section */}
             <div className="px-2 mt-4 mb-2">

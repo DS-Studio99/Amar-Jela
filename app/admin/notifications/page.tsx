@@ -21,10 +21,18 @@ export default async function AdminNotificationsPage() {
         return true;
     }).slice(0, 20).map(n => ({ ...n, target: 'all' }));
 
+    // Get pending blood requests
+    const { data: bloodRequests } = await supabase
+        .from('blood_requests')
+        .select('*, profiles(name)')
+        .eq('status', 'pending')
+        .order('created_at', { ascending: false });
+
     return (
         <AdminNotificationsClient
             divisions={BD_DIVISIONS}
             sentNotifications={sentNotifications}
+            bloodRequests={bloodRequests || []}
         />
     );
 }

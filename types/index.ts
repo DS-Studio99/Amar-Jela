@@ -39,6 +39,7 @@ export interface ContentItem {
     submitted_by_name?: string;
     metadata?: Record<string, string>;
     is_sponsored?: boolean;
+    sponsored_until?: string;
     created_at: string;
     updated_at: string;
     // joined
@@ -118,6 +119,8 @@ export interface Ad {
     image_url: string;
     click_url?: string;
     district_id?: string;
+    display_size?: string;
+    display_group?: string;
     is_active: boolean;
     clicks: number;
     created_at: string;

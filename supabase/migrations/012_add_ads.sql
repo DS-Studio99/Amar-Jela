@@ -1,10 +1,12 @@
--- Add ads table for clickable banner ads (300x250)
+-- Add ads table for clickable banner ads
 CREATE TABLE IF NOT EXISTS ads (
     id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
     title TEXT,
     image_url TEXT NOT NULL,
     click_url TEXT,
     district_id TEXT,
+    display_size TEXT DEFAULT '320x100',
+    display_group TEXT DEFAULT '',
     is_active BOOLEAN DEFAULT true,
     clicks INTEGER DEFAULT 0,
     created_at TIMESTAMPTZ DEFAULT NOW()

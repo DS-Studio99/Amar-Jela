@@ -6,6 +6,7 @@ import { createClient } from '@/lib/supabase/client';
 import { useRouter } from 'next/navigation';
 import { getDistrict } from '@/lib/data/bangladesh';
 import { Profile } from '@/types';
+import { useTheme } from 'next-themes';
 
 interface NotifToast {
     id: string;
@@ -16,10 +17,52 @@ interface NotifToast {
 export default function UserHeader({ profile, unreadCount = 0 }: { profile: Profile | null; unreadCount?: number }) {
     const [drawerOpen, setDrawerOpen] = useState(false);
     const [toast, setToast] = useState<NotifToast | null>(null);
+    const [popupNotif, setPopupNotif] = useState<any | null>(null);
     const [badge, setBadge] = useState(unreadCount);
+    const [mounted, setMounted] = useState(false);
     const router = useRouter();
+    const { theme, setTheme } = useTheme();
     const supabase = createClient();
     const dist = profile ? getDistrict(profile.selected_district_id || profile.district_id) : null;
+
+    useEffect(() => setMounted(true), []);
+
+    // Initial fetch for missed popups
+    useEffect(() => {
+        if (!profile?.id) return;
+        async function fetchPopup() {
+            const { data } = await supabase
+                .from('user_notifications')
+                .select('*')
+                .eq('user_id', profile!.id)
+                .eq('is_read', false)
+                .eq('show_as_popup', true)
+                .order('created_at', { ascending: true })
+                .limit(1)
+                .single();
+            if (data) setPopupNotif(data);
+        }
+        fetchPopup();
+    }, [profile?.id]);
+
+    // Popup auto-dismiss logic
+    useEffect(() => {
+        if (!popupNotif) return;
+        const duration = (popupNotif.view_duration_seconds || 5) * 1000;
+        const t = setTimeout(() => {
+            closePopup(popupNotif.id);
+        }, duration);
+        return () => clearTimeout(t);
+    }, [popupNotif]);
+
+    async function closePopup(id: string) {
+        setPopupNotif(null);
+        await supabase.from('user_notifications').update({
+            is_read: true,
+            popup_views: (popupNotif?.popup_views || 0) + 1
+        }).eq('id', id);
+        router.refresh();
+    }
 
     // Real-time notification listener
     useEffect(() => {
@@ -32,12 +75,14 @@ export default function UserHeader({ profile, unreadCount = 0 }: { profile: Prof
                 schema: 'public',
                 table: 'user_notifications',
                 filter: `user_id=eq.${profile.id}`,
-            }, (payload: { new: { id: string; title: string; message: string } }) => {
-                // Show toast
-                setToast({ id: payload.new.id, title: payload.new.title, message: payload.new.message });
+            }, (payload: { new: any }) => {
                 setBadge(prev => prev + 1);
-                // Auto-dismiss after 5s
-                setTimeout(() => setToast(null), 5000);
+                if (payload.new.show_as_popup) {
+                    setPopupNotif(payload.new);
+                } else {
+                    setToast({ id: payload.new.id, title: payload.new.title, message: payload.new.message });
+                    setTimeout(() => setToast(null), 5000);
+                }
             })
             .subscribe();
 
@@ -53,6 +98,32 @@ export default function UserHeader({ profile, unreadCount = 0 }: { profile: Prof
 
     return (
         <>
+            {/* Advanced Popup Modal */}
+            {popupNotif && (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-fade-in" onClick={() => popupNotif.is_cancellable && closePopup(popupNotif.id)}>
+                    <div className="bg-white dark:bg-gray-900 w-full max-w-sm rounded-3xl overflow-hidden shadow-2xl animate-scale-up" onClick={e => e.stopPropagation()}>
+                        <div className={`p-5 text-white text-center ${popupNotif.type === 'emergency' ? 'bg-gradient-to-br from-red-500 to-red-600' : 'bg-gradient-to-br from-primary-500 to-primary-600'}`}>
+                            <div className="text-4xl mb-2 drop-shadow-md">
+                                {popupNotif.type === 'emergency' ? '🚨' : popupNotif.type === 'promotion' ? '🎁' : '📢'}
+                            </div>
+                            <h3 className="text-xl font-extrabold">{popupNotif.title}</h3>
+                        </div>
+                        <div className="p-6">
+                            <p className="text-gray-700 dark:text-gray-300 text-sm whitespace-pre-line text-center leading-relaxed font-medium">
+                                {popupNotif.message}
+                            </p>
+                        </div>
+                        {popupNotif.is_cancellable && (
+                            <div className="p-3 border-t border-gray-100 dark:border-gray-800">
+                                <button onClick={() => closePopup(popupNotif.id)} className="w-full py-2.5 text-sm font-bold text-gray-500 hover:text-gray-700 transition-colors">
+                                    বন্ধ করুন
+                                </button>
+                            </div>
+                        )}
+                    </div>
+                </div>
+            )}
+
             {/* Toast Notification */}
             {toast && (
                 <div className="fixed top-2 left-1/2 -translate-x-1/2 z-[70] w-[90%] max-w-[420px] animate-toast">
@@ -68,8 +139,8 @@ export default function UserHeader({ profile, unreadCount = 0 }: { profile: Prof
             )}
 
             {/* Viewing bar */}
-            <div className="bg-gradient-to-r from-primary-600 to-primary-500 text-white text-center py-1 px-4 text-[10px] font-semibold tracking-wide">
-                📍 বর্তমানে দেখছেন: {dist ? `${dist.name} জেলা, ${dist.divisionName} বিভাগ` : 'লোড হচ্ছে...'}
+            <div className="bg-gradient-to-r from-primary-600 to-primary-500 text-white text-center py-1 px-4 text-[10px] font-semibold tracking-wide flex items-center justify-center">
+                <span>📍 বর্তমানে দেখছেন: {dist ? `${dist.name} জেলা, ${dist.divisionName} বিভাগ` : 'লোড হচ্ছে...'}</span>
             </div>
 
             {/* Header */}
@@ -81,6 +152,15 @@ export default function UserHeader({ profile, unreadCount = 0 }: { profile: Prof
                         <span className="text-[9px] text-gray-400 font-semibold tracking-widest">app</span>
                     </div>
                     <div className="flex items-center gap-0.5">
+                        {mounted && (
+                            <button
+                                onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+                                className="w-8 h-8 flex items-center justify-center text-base text-gray-600 rounded-full hover:bg-gray-100 transition-all"
+                                title={theme === 'dark' ? 'লাইট মোড' : 'ডার্ক মোড'}
+                            >
+                                {theme === 'dark' ? '☀️' : '🌙'}
+                            </button>
+                        )}
                         <Link href="/notifications" className="relative w-8 h-8 flex items-center justify-center text-base text-gray-600 rounded-full hover:bg-gray-100 transition-all">
                             🔔
                             {badge > 0 && (

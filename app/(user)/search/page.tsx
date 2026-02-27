@@ -37,14 +37,32 @@ export default async function SearchPage({ searchParams }: Props) {
         items = data || [];
     }
 
-    // Attach saved status
+    // Attach saved status and process expiry logic
     const { data: savedData } = await supabase.from('saved_items').select('content_id').eq('user_id', user.id);
     const savedIds = new Set(savedData?.map(s => s.content_id) || []);
 
-    const contentItems = items.map((item: any) => ({
-        ...item,
-        isSaved: savedIds.has(item.id)
-    })) as ContentItem[];
+    const now = new Date();
+    const contentItems = items.map((item: any) => {
+        let isSponsored = item.is_sponsored;
+        if (isSponsored && item.sponsored_until) {
+            const expiry = new Date(item.sponsored_until);
+            if (now > expiry) {
+                isSponsored = false;
+            }
+        }
+        return {
+            ...item,
+            is_sponsored: isSponsored,
+            isSaved: savedIds.has(item.id)
+        } as ContentItem;
+    });
+
+    // Re-sort in case some sponsored items expired
+    contentItems.sort((a, b) => {
+        if (a.is_sponsored && !b.is_sponsored) return -1;
+        if (!a.is_sponsored && b.is_sponsored) return 1;
+        return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+    });
 
     return (
         <SearchClient
