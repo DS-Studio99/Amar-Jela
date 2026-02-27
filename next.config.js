@@ -15,6 +15,7 @@ const nextConfig = {
             { protocol: 'https', hostname: '*.supabase.co' },
         ],
     },
+    turbopack: {},
 };
 
 module.exports = withPWA(nextConfig);
