@@ -1,0 +1,20 @@
+components/admin/AdminBannersClient.tsx(7,10): error TS2305: Module '"@/lib/data/bangladesh"' has no exported member 'divisions'.
+components/admin/AdminBannersClient.tsx(22,45): error TS7006: Parameter 'd' implicitly has an 'any' type.
+components/admin/AdminBannersClient.tsx(60,40): error TS7006: Parameter 'd' implicitly has an 'any' type.
+components/admin/AdminBannersClient.tsx(64,47): error TS7006: Parameter 'd' implicitly has an 'any' type.
+components/admin/AdminDashboardClient.tsx(64,82): error TS2352: Conversion of type 'DashboardStats' to type 'Record<string, number>' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.
+  Index signature for type 'string' is missing in type 'DashboardStats'.
+lib/supabase/server.ts(12,24): error TS7006: Parameter 'cookiesToSet' implicitly has an 'any' type.
+lib/supabase/server.ts(14,49): error TS7031: Binding element 'name' implicitly has an 'any' type.
+lib/supabase/server.ts(14,55): error TS7031: Binding element 'value' implicitly has an 'any' type.
+lib/supabase/server.ts(14,62): error TS7031: Binding element 'options' implicitly has an 'any' type.
+lib/supabase/server.ts(32,24): error TS7006: Parameter 'cookiesToSet' implicitly has an 'any' type.
+lib/supabase/server.ts(34,49): error TS7031: Binding element 'name' implicitly has an 'any' type.
+lib/supabase/server.ts(34,55): error TS7031: Binding element 'value' implicitly has an 'any' type.
+lib/supabase/server.ts(34,62): error TS7031: Binding element 'options' implicitly has an 'any' type.
+middleware.ts(13,24): error TS7006: Parameter 'cookiesToSet' implicitly has an 'any' type.
+middleware.ts(14,45): error TS7031: Binding element 'name' implicitly has an 'any' type.
+middleware.ts(14,51): error TS7031: Binding element 'value' implicitly has an 'any' type.
+middleware.ts(16,45): error TS7031: Binding element 'name' implicitly has an 'any' type.
+middleware.ts(16,51): error TS7031: Binding element 'value' implicitly has an 'any' type.
+middleware.ts(16,58): error TS7031: Binding element 'options' implicitly has an 'any' type.

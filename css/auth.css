@@ -1,0 +1,217 @@
+/* =====================================================
+   auth.css — Login & Registration Page Styles
+   ===================================================== */
+
+.auth-page {
+    min-height: 100vh;
+    background: linear-gradient(160deg, #e8f8f0 0%, #f4f6f9 40%, #e3f0fc 100%);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 20px 16px;
+}
+
+.auth-logo-wrap {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin-bottom: 28px;
+    animation: float 3s ease-in-out infinite;
+}
+
+@keyframes float {
+
+    0%,
+    100% {
+        transform: translateY(0);
+    }
+
+    50% {
+        transform: translateY(-6px);
+    }
+}
+
+.auth-logo {
+    width: 80px;
+    height: 80px;
+    background: linear-gradient(135deg, var(--primary), #0d7a45);
+    border-radius: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 42px;
+    box-shadow: 0 8px 32px rgba(26, 158, 92, 0.35);
+    margin-bottom: 12px;
+}
+
+.auth-app-name {
+    font-size: 26px;
+    font-weight: 800;
+    color: var(--primary-dark);
+    letter-spacing: -0.5px;
+}
+
+.auth-tagline {
+    font-size: 13px;
+    color: var(--text-light);
+    margin-top: 2px;
+}
+
+.auth-card {
+    width: 100%;
+    max-width: 420px;
+    background: var(--white);
+    border-radius: var(--radius-xl);
+    box-shadow: var(--shadow-lg);
+    overflow: hidden;
+}
+
+/* Tab Switcher */
+.auth-tabs {
+    display: flex;
+    border-bottom: 2px solid var(--border);
+}
+
+.auth-tab {
+    flex: 1;
+    padding: 14px;
+    text-align: center;
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--text-light);
+    cursor: pointer;
+    transition: var(--transition);
+    border: none;
+    background: none;
+    border-bottom: 3px solid transparent;
+    margin-bottom: -2px;
+}
+
+.auth-tab.active {
+    color: var(--primary);
+    border-bottom-color: var(--primary);
+}
+
+.auth-form {
+    padding: 24px 24px 20px;
+}
+
+.auth-form .form-group:last-of-type {
+    margin-bottom: 20px;
+}
+
+.auth-divider {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin: 16px 0;
+    color: var(--text-light);
+    font-size: 13px;
+}
+
+.auth-divider::before,
+.auth-divider::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+}
+
+.auth-footer {
+    text-align: center;
+    font-size: 13px;
+    color: var(--text-light);
+    padding: 12px 24px 20px;
+}
+
+.auth-footer a {
+    color: var(--primary);
+    font-weight: 600;
+}
+
+.password-wrap {
+    position: relative;
+}
+
+.toggle-pw {
+    position: absolute;
+    right: 14px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 18px;
+    cursor: pointer;
+    background: none;
+    border: none;
+    color: var(--text-light);
+    transition: var(--transition);
+}
+
+.toggle-pw:hover {
+    color: var(--primary);
+}
+
+.optional-label {
+    font-size: 11px;
+    color: var(--text-light);
+    margin-left: 4px;
+    font-weight: 400;
+}
+
+/* Progress Steps */
+.form-step {
+    display: none;
+}
+
+.form-step.active {
+    display: block;
+    animation: fadeSlide 0.3s ease;
+}
+
+@keyframes fadeSlide {
+    from {
+        opacity: 0;
+        transform: translateX(20px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+.step-indicator {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0;
+    padding: 16px 24px 0;
+}
+
+.step-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: var(--border);
+    transition: var(--transition);
+}
+
+.step-dot.active {
+    background: var(--primary);
+    transform: scale(1.3);
+}
+
+.step-dot.done {
+    background: var(--primary);
+}
+
+.step-line {
+    flex: 1;
+    height: 2px;
+    background: var(--border);
+    max-width: 48px;
+}
+
+.step-line.done {
+    background: var(--primary);
+}

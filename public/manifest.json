@@ -1,0 +1,21 @@
+{
+    "name": "Amar Jela",
+    "short_name": "Amar Jela",
+    "description": "বাংলাদেশের সকল জেলার তথ্য সেবাসমূহ",
+    "start_url": "/dashboard",
+    "display": "standalone",
+    "background_color": "#ffffff",
+    "theme_color": "#1a9e5c",
+    "icons": [
+        {
+            "src": "/icon-192x192.png",
+            "sizes": "192x192",
+            "type": "image/png"
+        },
+        {
+            "src": "/icon-512x512.png",
+            "sizes": "512x512",
+            "type": "image/png"
+        }
+    ]
+}
