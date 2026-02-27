@@ -22,7 +22,7 @@ export default async function UserLayout({ children }: { children: React.ReactNo
         <div className="app-container">
             <LoadingScreen />
             <UserHeader profile={profile} unreadCount={unreadCount || 0} />
-            <main className="pb-20">
+            <main className="pb-14">
                 {children}
             </main>
             <BottomNav />

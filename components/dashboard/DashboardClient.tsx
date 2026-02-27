@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { Category, Notice, Banner } from '@/types';
+import { Category, Notice, Banner, Ad } from '@/types';
 import { District } from '@/types';
 
 import { createClient } from '@/lib/supabase/client';
@@ -12,6 +12,7 @@ interface Props {
     categories: Category[];
     notices: Notice[];
     banners?: Banner[];
+    ads?: Ad[];
     district: (District & { divisionId: string; divisionName: string }) | null;
     districtId: string;
 }
@@ -22,7 +23,7 @@ const FALLBACK_IMAGES = [
     'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=800&auto=format&fit=crop',
 ];
 
-export default function DashboardClient({ categories, notices, banners = [], district, districtId }: Props) {
+export default function DashboardClient({ categories, notices, banners = [], ads = [], district, districtId }: Props) {
     const [slideIndex, setSlideIndex] = useState(0);
     const [bloodModalOpen, setBloodModalOpen] = useState(false);
     const [bloodGroup, setBloodGroup] = useState('A+');
@@ -169,6 +170,37 @@ export default function DashboardClient({ categories, notices, banners = [], dis
                 </div>
             </div>
 
+            {/* Ad Banner (300x250) */}
+            {ads.length > 0 && (
+                <div className="px-2 mt-2">
+                    <div className="flex items-center justify-center">
+                        <div className="relative rounded-2xl overflow-hidden shadow-md border border-gray-100" style={{ width: '300px', height: '250px' }}>
+                            {(() => {
+                                const activeAds = ads.filter(a => a.is_active);
+                                if (activeAds.length === 0) return null;
+                                const ad = activeAds[Math.floor(Math.random() * activeAds.length)];
+                                const content = (
+                                    /* eslint-disable-next-line @next/next/no-img-element */
+                                    <img src={ad.image_url} alt={ad.title || 'বিজ্ঞাপন'} className="w-full h-full object-cover" />
+                                );
+                                return ad.click_url ? (
+                                    <a
+                                        href={ad.click_url}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        onClick={() => supabase.rpc('increment_ad_clicks', { ad_id: ad.id }).then()}
+                                        className="block w-full h-full"
+                                    >
+                                        {content}
+                                    </a>
+                                ) : content;
+                            })()}
+                            <div className="absolute bottom-1 right-2 bg-black/40 text-white text-[8px] px-1.5 py-0.5 rounded font-medium backdrop-blur-sm">বিজ্ঞাপন</div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
             {/* Category Groups — 4 per row, neon glow */}
             {Object.entries(groups).map(([groupName, cats]) => (
                 <div key={groupName} className="px-2 mt-1.5 mb-2">
@@ -295,10 +327,10 @@ export default function DashboardClient({ categories, notices, banners = [], dis
             {/* Blood Request Modal */}
             {bloodModalOpen && (
                 <div
-                    className="fixed inset-0 z-50 flex flex-col justify-end sm:justify-center items-center bg-black/40 backdrop-blur-sm p-4"
+                    className="fixed inset-0 z-[55] flex flex-col justify-end sm:justify-center items-center bg-black/40 backdrop-blur-sm p-4"
                     onClick={(e) => e.target === e.currentTarget && setBloodModalOpen(false)}
                 >
-                    <div className="bg-white w-full max-w-md rounded-3xl overflow-hidden shadow-2xl animate-slide-up flex flex-col max-h-[90vh]">
+                    <div className="bg-white w-full max-w-md rounded-3xl overflow-hidden shadow-2xl animate-slide-up flex flex-col max-h-[85vh] mb-14">
                         {/* Header */}
                         <div className="bg-gradient-to-br from-red-500 to-red-600 p-5 pb-6 text-white text-center relative rounded-b-3xl shadow-sm z-10">
                             <button

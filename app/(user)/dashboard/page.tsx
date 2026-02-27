@@ -1,6 +1,6 @@
 import { createClient } from '@/lib/supabase/server';
 import { getDistrict } from '@/lib/data/bangladesh';
-import { Category, Notice, Banner } from '@/types';
+import { Category, Notice, Banner, Ad } from '@/types';
 import DashboardClient from '@/components/dashboard/DashboardClient';
 import { redirect } from 'next/navigation';
 
@@ -15,10 +15,11 @@ export default async function DashboardPage() {
     const districtId = profile.selected_district_id || profile.district_id;
     const district = getDistrict(districtId);
 
-    const [{ data: categories }, { data: notices }, { data: banners }] = await Promise.all([
+    const [{ data: categories }, { data: notices }, { data: banners }, { data: ads }] = await Promise.all([
         supabase.from('categories').select('*').eq('active', true).order('display_order'),
         supabase.from('notices').select('*').eq('active', true).order('created_at', { ascending: false }),
         supabase.from('banners').select('*').eq('active', true).eq('district_id', districtId).order('created_at', { ascending: false }),
+        supabase.from('ads').select('*').eq('is_active', true).order('created_at', { ascending: false }),
     ]);
 
     return (
@@ -26,6 +27,7 @@ export default async function DashboardPage() {
             categories={(categories || []) as Category[]}
             notices={(notices || []) as Notice[]}
             banners={(banners || []) as Banner[]}
+            ads={(ads || []) as Ad[]}
             district={district || null}
             districtId={districtId}
         />

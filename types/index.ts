@@ -10,6 +10,7 @@ export interface Profile {
     selected_division_id: string;
     selected_district_id: string;
     role: 'user' | 'admin' | 'district_admin';
+    avatar_url?: string;
     created_at: string;
 }
 
@@ -109,4 +110,15 @@ export interface DashboardStats {
     approved: number;
     rejected: number;
     totalContent: number;
+}
+
+export interface Ad {
+    id: string;
+    title?: string;
+    image_url: string;
+    click_url?: string;
+    district_id?: string;
+    is_active: boolean;
+    clicks: number;
+    created_at: string;
 }

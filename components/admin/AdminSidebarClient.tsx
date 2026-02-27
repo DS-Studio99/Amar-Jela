@@ -15,6 +15,8 @@ const NAV_ITEMS = [
     { href: '/admin/notifications', icon: '🔔', label: 'নোটিফিকেশন' },
     { href: '/admin/banners', icon: '🖼️', label: 'ব্যানার/বিজ্ঞাপন' },
     { href: '/admin/reports', icon: '🚩', label: 'রিপোর্ট' },
+    { href: '/admin/ads', icon: '📢', label: 'এড সিস্টেম' },
+    { href: '/admin/developer', icon: '👨‍💻', label: 'ডেভেলপার তথ্য' },
 ];
 
 export default function AdminSidebarClient() {

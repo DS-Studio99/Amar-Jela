@@ -89,7 +89,6 @@ export default function UserHeader({ profile, unreadCount = 0 }: { profile: Prof
                                 </span>
                             )}
                         </Link>
-                        <Link href="/settings" className="w-8 h-8 flex items-center justify-center text-base text-gray-600 rounded-full hover:bg-gray-100 transition-all">⚙️</Link>
                     </div>
                 </div>
             </header>
@@ -116,12 +115,25 @@ export default function UserHeader({ profile, unreadCount = 0 }: { profile: Prof
                             )}
                         </div>
                         {/* Links */}
-                        <nav className="flex-1 p-3 space-y-1">
-                            {[{ href: '/dashboard', icon: '🏠', label: 'হোম' }, { href: '/settings', icon: '⚙️', label: 'সেটিং' }, { href: '/profile', icon: '👤', label: 'প্রোফাইল' }, { href: '/notifications', icon: '🔔', label: 'নোটিফিকেশন' }, { href: '/contact', icon: '📞', label: 'যোগাযোগ' }].map(l => (
+                        <nav className="flex-1 p-3 space-y-1 overflow-y-auto">
+                            {[{ href: '/dashboard', icon: '🏠', label: 'হোম' }, { href: '/profile', icon: '👤', label: 'প্রোফাইল' }, { href: '/notifications', icon: '🔔', label: 'নোটিফিকেশন' }, { href: '/contact', icon: '📞', label: 'যোগাযোগ' }].map(l => (
                                 <Link key={l.href} href={l.href} onClick={() => setDrawerOpen(false)} className="flex items-center gap-3 px-4 py-3 rounded-xl text-gray-700 hover:bg-primary-50 hover:text-primary-600 text-sm font-medium transition-all">
                                     <span className="text-lg">{l.icon}</span>{l.label}
                                 </Link>
                             ))}
+
+                            {/* Divider */}
+                            <div className="pt-2 pb-1 px-4">
+                                <div className="h-px bg-gray-100" />
+                                <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest mt-2">আরও</p>
+                            </div>
+
+                            {[{ href: '/about-developer', icon: '👨‍💻', label: 'ডেভেলপার সম্পর্কে' }, { href: '/privacy', icon: '🔒', label: 'প্রাইভেসি নোটিশ' }, { href: '/terms', icon: '📜', label: 'শর্তাবলী' }, { href: '/legal', icon: '⚖️', label: 'আইনি নোটিশ' }].map(l => (
+                                <Link key={l.href} href={l.href} onClick={() => setDrawerOpen(false)} className="flex items-center gap-3 px-4 py-2.5 rounded-xl text-gray-500 hover:bg-gray-50 hover:text-gray-700 text-[13px] font-medium transition-all">
+                                    <span className="text-base">{l.icon}</span>{l.label}
+                                </Link>
+                            ))}
+
                             <Link href="/admin" className="flex items-center gap-3 px-4 py-3 rounded-xl text-purple-700 hover:bg-purple-50 text-sm font-medium transition-all border border-purple-100 mt-2">
                                 <span className="text-lg">🛡️</span>অ্যাডমিন প্যানেল
                             </Link>

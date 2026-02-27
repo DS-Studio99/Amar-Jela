@@ -200,37 +200,35 @@ export default function ServiceClient({ category, items, district, districtId, u
     // Render content card based on category
     function renderContentCard(item: ContentItem) {
         const meta = (item.metadata || {}) as Record<string, string>;
+        const accentColor = category?.color || '#1a9e5c';
 
         return (
-            <div key={item.id} className={`bg-white rounded-2xl border overflow-hidden hover:shadow-lg transition-all duration-300 group ${item.is_sponsored ? 'border-amber-400 shadow-md ring-2 ring-amber-400/20' : 'border-gray-100'}`}>
-                {/* Card Header */}
-                <div className="p-4 pb-2 relative">
-                    <div className="absolute top-3 right-3 z-10">
-                        <button
-                            onClick={(e) => { e.stopPropagation(); toggleSave(item); }}
-                            className={`w-8 h-8 rounded-full flex items-center justify-center transition-all ${item.isSaved ? 'bg-red-50 text-red-500' : 'bg-gray-50 text-gray-400 hover:bg-red-50 hover:text-red-400'}`}
-                            title={item.isSaved ? "সেভ করা হয়েছে" : "সেভ করে রাখুন"}
-                        >
-                            <svg className={`w-5 h-5 ${item.isSaved ? 'fill-current' : 'fill-none stroke-current stroke-2'}`} viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" d="M11.998 21.054c-1.448-1.396-8.998-8.151-8.998-13.054 0-2.761 2.239-5 5-5 2.053 0 3.829 1.258 4.75 3.125A5.253 5.253 0 0 1 17.5 3c2.761 0 5 2.239 5 5 0 4.903-7.55 11.658-8.998 13.054a1.496 1.496 0 0 1-1.504 0Z" />
-                            </svg>
-                        </button>
+            <div key={item.id} className={`relative bg-white rounded-2xl overflow-hidden transition-all duration-300 group hover:-translate-y-0.5 ${item.is_sponsored ? 'ring-2 ring-amber-400/30 shadow-lg shadow-amber-100' : 'shadow-md shadow-gray-200/60 hover:shadow-xl hover:shadow-gray-300/40'}`} style={{ borderLeft: `3px solid ${accentColor}` }}>
+                {/* Sponsored badge */}
+                {item.is_sponsored && (
+                    <div className="absolute top-0 right-0 bg-gradient-to-l from-amber-400 to-orange-400 text-white text-[9px] font-bold px-3 py-1 rounded-bl-2xl flex items-center gap-1 shadow-sm z-10">
+                        <span>⭐</span> <span>প্রিমিয়াম</span>
                     </div>
+                )}
 
-                    {item.is_sponsored && (
-                        <div className="absolute top-0 right-14 bg-gradient-to-r from-amber-400 to-orange-400 text-white text-[10px] font-bold px-3 py-1 rounded-bl-2xl rounded-tr-xl flex items-center gap-1 shadow-sm">
-                            <span>⭐</span> <span>প্রিমিয়াম</span>
-                        </div>
-                    )}
-                    <div className="flex items-start gap-3 pr-10">
-                        <div className="w-12 h-12 rounded-2xl flex items-center justify-center text-2xl flex-shrink-0 shadow-sm transition-transform group-hover:scale-105" style={{ background: (category?.color || '#1a9e5c') + '18' }}>
+                {/* Card Header */}
+                <div className="p-4 pb-2.5">
+                    <div className="flex items-start gap-3">
+                        {/* Icon */}
+                        <div
+                            className="w-12 h-12 rounded-2xl flex items-center justify-center text-2xl flex-shrink-0 transition-all duration-300 group-hover:scale-110 group-hover:rotate-3"
+                            style={{
+                                background: `linear-gradient(135deg, ${accentColor}12, ${accentColor}25)`,
+                                boxShadow: `0 4px 12px ${accentColor}15`,
+                            }}
+                        >
                             {category?.icon}
                         </div>
-                        <div className="flex-1 min-w-0">
-                            <h3 className="font-bold text-gray-800 text-[15px] leading-snug">{item.title}</h3>
-                            {/* Specialty for doctor */}
+                        {/* Title & Phone */}
+                        <div className="flex-1 min-w-0 pr-8">
+                            <h3 className="font-extrabold text-gray-800 text-[15px] leading-snug group-hover:text-gray-900 transition-colors">{item.title}</h3>
                             {isDoctor && meta.specialty && (
-                                <span className="inline-flex items-center gap-1 mt-1 px-2 py-0.5 bg-blue-50 text-blue-700 rounded-lg text-xs font-semibold">🩺 {meta.specialty}</span>
+                                <span className="inline-flex items-center gap-1 mt-1 px-2 py-0.5 bg-blue-50 text-blue-600 rounded-lg text-[11px] font-bold">🩺 {meta.specialty}</span>
                             )}
                             {item.phone && (
                                 <a href={`tel:${item.phone}`} className="flex items-center gap-1.5 mt-1.5 text-primary-600 text-sm font-semibold hover:underline">
@@ -238,16 +236,26 @@ export default function ServiceClient({ category, items, district, districtId, u
                                 </a>
                             )}
                         </div>
+                        {/* Save Button */}
+                        <button
+                            onClick={(e) => { e.stopPropagation(); toggleSave(item); }}
+                            className={`absolute top-3 right-3 w-8 h-8 rounded-full flex items-center justify-center transition-all duration-200 ${item.isSaved ? 'bg-red-50 text-red-500 shadow-sm shadow-red-100' : 'bg-gray-50 text-gray-300 hover:bg-red-50 hover:text-red-400'}`}
+                            title={item.isSaved ? "সেভ করা হয়েছে" : "সেভ করে রাখুন"}
+                        >
+                            <svg className={`w-4.5 h-4.5 ${item.isSaved ? 'fill-current' : 'fill-none stroke-current stroke-2'}`} viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M11.998 21.054c-1.448-1.396-8.998-8.151-8.998-13.054 0-2.761 2.239-5 5-5 2.053 0 3.829 1.258 4.75 3.125A5.253 5.253 0 0 1 17.5 3c2.761 0 5 2.239 5 5 0 4.903-7.55 11.658-8.998 13.054a1.496 1.496 0 0 1-1.504 0Z" />
+                            </svg>
+                        </button>
                     </div>
                 </div>
 
                 {/* Highlighted Fields (Visit time, Fee, etc.) */}
-                {(isDoctor || Object.keys(meta).length > 0) && (
-                    <div className="mx-4 mb-2">
+                {(isDoctor || Object.keys(meta).length > 0) && catConfig.fields.filter(f => f.highlight && meta[f.key]).length > 0 && (
+                    <div className="mx-4 mb-2 flex flex-wrap gap-1.5">
                         {catConfig.fields.filter(f => f.highlight && meta[f.key]).map(field => (
-                            <div key={field.key} className="flex items-center gap-2 py-1.5 px-3 mt-1.5 bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200/60 rounded-xl">
-                                <span className="text-xs font-bold text-amber-700">{field.label}:</span>
-                                <span className="text-xs font-bold text-amber-900">{meta[field.key]}</span>
+                            <div key={field.key} className="inline-flex items-center gap-1.5 py-1 px-2.5 bg-gradient-to-r from-amber-50 to-orange-50/80 border border-amber-200/50 rounded-lg">
+                                <span className="text-[10px] font-bold text-amber-600">{field.label}:</span>
+                                <span className="text-[10px] font-extrabold text-amber-800">{meta[field.key]}</span>
                             </div>
                         ))}
                     </div>
@@ -260,20 +268,20 @@ export default function ServiceClient({ category, items, district, districtId, u
                             href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(item.address + (district?.name ? `, ${district.name}` : ''))}`}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="text-xs text-gray-500 flex items-start gap-1 hover:text-primary-600 transition-colors group"
+                            className="text-[11px] text-gray-500 flex items-start gap-1.5 hover:text-primary-600 transition-colors group/addr"
                             title="ম্যাপে দেখুন"
                         >
-                            <span className="flex-shrink-0 mt-0.5 group-hover:scale-110 transition-transform">📍</span>
-                            <span className="group-hover:underline line-clamp-2">{item.address}</span>
+                            <span className="flex-shrink-0 mt-0.5 group-hover/addr:scale-110 transition-transform">📍</span>
+                            <span className="group-hover/addr:underline line-clamp-1">{item.address}</span>
                         </a>
                     </div>
                 )}
 
                 {/* Meta fields (non-highlighted) */}
                 {Object.keys(meta).length > 0 && (
-                    <div className="mx-4 mb-2 flex flex-wrap gap-1.5">
+                    <div className="mx-4 mb-2 flex flex-wrap gap-1">
                         {catConfig.fields.filter(f => !f.highlight && f.key !== 'title' && f.key !== 'phone' && f.key !== 'address' && f.key !== 'description' && meta[f.key]).map(field => (
-                            <span key={field.key} className="inline-flex items-center px-2 py-0.5 bg-gray-100 text-gray-600 rounded-lg text-[11px] font-medium">
+                            <span key={field.key} className="inline-flex items-center px-2 py-0.5 bg-gray-50 text-gray-600 rounded-md text-[10px] font-medium border border-gray-100">
                                 {field.label.replace(/[⏰💰📞🩸🛣️🛤️🎟️📍🏢🎓📅💍💼📰🏫📚🛍️📦👮📱🚗🍽️🏊🚨📞]/g, '').trim()}: {meta[field.key]}
                             </span>
                         ))}
@@ -283,14 +291,17 @@ export default function ServiceClient({ category, items, district, districtId, u
                 {/* Description (truncated) */}
                 {item.description && (
                     <div className="mx-4 mb-2">
-                        <p className="text-xs text-gray-600 bg-gray-50 p-2.5 rounded-xl line-clamp-2">{item.description}</p>
+                        <p className="text-[11px] text-gray-600 bg-gray-50/80 p-2.5 rounded-xl line-clamp-2 leading-relaxed">{item.description}</p>
                     </div>
                 )}
 
-                {/* Detail Button */}
-                <div className="px-4 pb-3 flex justify-end">
-                    <button onClick={() => setDetailItem(item)} className="text-xs text-primary-600 font-semibold hover:text-primary-700 flex items-center gap-1 bg-primary-50 px-3 py-1.5 rounded-lg hover:bg-primary-100 transition-all">
-                        📄 বিস্তারিত দেখুন →
+                {/* Card Footer: Detail & Actions */}
+                <div className="px-4 pb-3 pt-1 flex items-center justify-between border-t border-gray-50 mt-1">
+                    <div className="flex items-center gap-2 text-[10px] text-gray-400">
+                        {item.views !== undefined && <span>👁 {item.views}</span>}
+                    </div>
+                    <button onClick={() => setDetailItem(item)} className="text-[11px] text-primary-600 font-bold hover:text-primary-700 flex items-center gap-1 bg-primary-50/80 px-3 py-1.5 rounded-lg hover:bg-primary-100 transition-all active:scale-95">
+                        বিস্তারিত →
                     </button>
                 </div>
             </div>
@@ -320,18 +331,23 @@ export default function ServiceClient({ category, items, district, districtId, u
                 </div>
             )}
 
-            {/* Back + Header — very compact, fixed at true top */}
-            <div className="sticky top-0 z-30 bg-white/95 backdrop-blur-md border-b border-gray-100 px-3 py-1.5 flex items-center justify-between" style={{ boxShadow: '0 1px 6px rgba(0,0,0,0.04)' }}>
-                <Link href="/dashboard" className="flex items-center gap-0.5 text-gray-400 hover:text-gray-600 transition-colors text-[11px] font-medium">
-                    ← ফিরে যান
-                </Link>
-                <div className="text-center flex items-center gap-1.5">
-                    <span className="text-base">{category?.icon}</span>
-                    <span className="text-[11px] font-bold text-gray-700">{category?.name}</span>
-                    <span className="text-[9px] text-gray-400">• {district ? district.name : 'জেলা'}</span>
+            {/* Back + Header — fixed bar that never hides on scroll */}
+            <div className="fixed top-0 left-0 right-0 z-30 bg-white/95 backdrop-blur-md border-b border-gray-100" style={{ boxShadow: '0 1px 6px rgba(0,0,0,0.04)' }}>
+                <div className="max-w-[480px] mx-auto px-3 py-1.5 flex items-center justify-between">
+                    <Link href="/dashboard" className="flex items-center gap-0.5 text-gray-400 hover:text-gray-600 transition-colors text-[11px] font-medium">
+                        ← ফিরে যান
+                    </Link>
+                    <div className="text-center flex items-center gap-1.5">
+                        <span className="text-base">{category?.icon}</span>
+                        <span className="text-[11px] font-bold text-gray-700">{category?.name}</span>
+                        <span className="text-[9px] text-gray-400">• {district ? district.name : 'জেলা'}</span>
+                    </div>
+                    <button onClick={openAddModal} className="text-[10px] bg-gradient-to-r from-primary-500 to-primary-600 text-white px-2.5 py-1 rounded-lg font-semibold hover:from-primary-600 hover:to-primary-700 transition-all shadow-sm active:scale-95">+ যোগ</button>
                 </div>
-                <button onClick={openAddModal} className="text-[10px] bg-gradient-to-r from-primary-500 to-primary-600 text-white px-2.5 py-1 rounded-lg font-semibold hover:from-primary-600 hover:to-primary-700 transition-all shadow-sm active:scale-95">+ যোগ</button>
             </div>
+
+            {/* Spacer for fixed header */}
+            <div className="h-10" />
 
             {/* Content List */}
             <div className="p-3 space-y-3">
