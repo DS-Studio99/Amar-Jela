@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { ContentItem, Category } from '@/types';
 import { Division } from '@/types';
+import { getDistrict, getDivision } from '@/lib/data/bangladesh';
 
 type ContentWithCat = ContentItem & { categories: { name: string; icon: string; color: string } | null };
 
@@ -83,6 +84,7 @@ export default function AdminContentClient({ content, categories, divisions }: P
                             <th className="px-4 py-3 text-left">#</th>
                             <th className="px-4 py-3 text-left">তথ্য</th>
                             <th className="px-4 py-3 text-left">ক্যাটাগরি</th>
+                            <th className="px-4 py-3 text-left">বিভাগ/জেলা</th>
                             <th className="px-4 py-3 text-left">জমাদাতা</th>
                             <th className="px-4 py-3 text-left">এনগেজমেন্ট</th>
                             <th className="px-4 py-3 text-left">স্ট্যাটাস</th>
@@ -100,6 +102,10 @@ export default function AdminContentClient({ content, categories, divisions }: P
                                     {item.phone && <div className="text-xs text-primary-600">{item.phone}</div>}
                                 </td>
                                 <td className="px-4 py-3 text-sm">{item.categories?.icon} {item.categories?.name}</td>
+                                <td className="px-4 py-3">
+                                    <div className="text-xs font-semibold text-gray-700">{getDivision(item.division_id)?.name || '—'}</div>
+                                    <div className="text-[10px] text-gray-400">{getDistrict(item.district_id)?.name || '—'}</div>
+                                </td>
                                 <td className="px-4 py-3 text-xs text-gray-500">{item.submitted_by_name}</td>
                                 <td className="px-4 py-3">
                                     <div className="flex gap-2 text-xs font-bold">
@@ -131,7 +137,7 @@ export default function AdminContentClient({ content, categories, divisions }: P
                             <button onClick={() => setDetail(null)} className="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center text-sm hover:bg-red-100 hover:text-red-500">✕</button>
                         </div>
                         <div className="p-5 space-y-3">
-                            {([['শিরোনাম', detail.title], detail.phone ? ['ফোন', detail.phone] : null, detail.address ? ['ঠিকানা', detail.address] : null, detail.description ? ['বিবরণ', detail.description] : null, ['ক্যাটাগরি', `${detail.categories?.icon} ${detail.categories?.name}`], ['জমাদাতা', detail.submitted_by_name || '—'], ['ভিউ', `${detail.views || 0} বার দেখা হয়েছে`], ['কল', `${detail.calls || 0} বার যোগাযোগ`], ['তারিখ', new Date(detail.created_at).toLocaleDateString('bn-BD')]].filter((x): x is [string, string] => Boolean(x)) as [string, string][]).map(([k, v]) => (
+                            {([['শিরোনাম', detail.title], detail.phone ? ['ফোন', detail.phone] : null, detail.address ? ['ঠিকানা', detail.address] : null, detail.description ? ['বিবরণ', detail.description] : null, ['ক্যাটাগরি', `${detail.categories?.icon} ${detail.categories?.name}`], ['বিভাগ', getDivision(detail.division_id)?.name || '—'], ['জেলা', getDistrict(detail.district_id)?.name || '—'], ['জমাদাতা', detail.submitted_by_name || '—'], ['ভিউ', `${detail.views || 0} বার দেখা হয়েছে`], ['কল', `${detail.calls || 0} বার যোগাযোগ`], ['তারিখ', new Date(detail.created_at).toLocaleDateString('bn-BD')]].filter((x): x is [string, string] => Boolean(x)) as [string, string][]).map(([k, v]) => (
                                 <div key={k} className="flex justify-between text-sm border-b border-gray-50 pb-2">
                                     <span className="text-gray-500">{k}</span>
                                     <span className="font-semibold text-gray-800 text-right max-w-[60%]">{v as string}</span>

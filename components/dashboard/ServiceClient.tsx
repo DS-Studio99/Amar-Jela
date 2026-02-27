@@ -320,17 +320,17 @@ export default function ServiceClient({ category, items, district, districtId, u
                 </div>
             )}
 
-            {/* Back + Header */}
-            <div className="sticky top-[105px] z-30 bg-white/95 backdrop-blur-md border-b border-gray-100 px-4 py-3 flex items-center justify-between" style={{ boxShadow: '0 2px 10px rgba(0,0,0,0.05)' }}>
-                <Link href="/dashboard" className="flex items-center gap-1 text-gray-500 hover:text-gray-700 transition-colors text-sm font-medium">
+            {/* Back + Header — very compact, fixed at true top */}
+            <div className="sticky top-0 z-30 bg-white/95 backdrop-blur-md border-b border-gray-100 px-3 py-1.5 flex items-center justify-between" style={{ boxShadow: '0 1px 6px rgba(0,0,0,0.04)' }}>
+                <Link href="/dashboard" className="flex items-center gap-0.5 text-gray-400 hover:text-gray-600 transition-colors text-[11px] font-medium">
                     ← ফিরে যান
                 </Link>
-                <div className="text-center">
-                    <div className="text-2xl">{category?.icon}</div>
-                    <div className="text-sm font-bold text-gray-800">{category?.name}</div>
-                    <div className="text-[11px] text-gray-500">{district ? district.name : 'জেলা'}</div>
+                <div className="text-center flex items-center gap-1.5">
+                    <span className="text-base">{category?.icon}</span>
+                    <span className="text-[11px] font-bold text-gray-700">{category?.name}</span>
+                    <span className="text-[9px] text-gray-400">• {district ? district.name : 'জেলা'}</span>
                 </div>
-                <button onClick={openAddModal} className="text-xs bg-gradient-to-r from-primary-500 to-primary-600 text-white px-3.5 py-2 rounded-xl font-semibold hover:from-primary-600 hover:to-primary-700 transition-all shadow-md active:scale-95">+ যোগ করুন</button>
+                <button onClick={openAddModal} className="text-[10px] bg-gradient-to-r from-primary-500 to-primary-600 text-white px-2.5 py-1 rounded-lg font-semibold hover:from-primary-600 hover:to-primary-700 transition-all shadow-sm active:scale-95">+ যোগ</button>
             </div>
 
             {/* Content List */}

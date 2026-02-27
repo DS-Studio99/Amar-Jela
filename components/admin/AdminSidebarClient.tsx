@@ -12,6 +12,7 @@ const NAV_ITEMS = [
     { href: '/admin/districts', icon: '🗺️', label: 'জেলার তথ্য' },
     { href: '/admin/users', icon: '👥', label: 'ব্যবহারকারী' },
     { href: '/admin/notices', icon: '📢', label: 'নোটিশ' },
+    { href: '/admin/notifications', icon: '🔔', label: 'নোটিফিকেশন' },
     { href: '/admin/banners', icon: '🖼️', label: 'ব্যানার/বিজ্ঞাপন' },
     { href: '/admin/reports', icon: '🚩', label: 'রিপোর্ট' },
 ];

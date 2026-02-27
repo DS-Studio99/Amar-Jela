@@ -1,17 +1,50 @@
 'use client';
 
 import Link from 'next/link';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { useRouter } from 'next/navigation';
 import { getDistrict } from '@/lib/data/bangladesh';
 import { Profile } from '@/types';
 
-export default function UserHeader({ profile }: { profile: Profile | null }) {
+interface NotifToast {
+    id: string;
+    title: string;
+    message: string;
+}
+
+export default function UserHeader({ profile, unreadCount = 0 }: { profile: Profile | null; unreadCount?: number }) {
     const [drawerOpen, setDrawerOpen] = useState(false);
+    const [toast, setToast] = useState<NotifToast | null>(null);
+    const [badge, setBadge] = useState(unreadCount);
     const router = useRouter();
     const supabase = createClient();
     const dist = profile ? getDistrict(profile.selected_district_id || profile.district_id) : null;
+
+    // Real-time notification listener
+    useEffect(() => {
+        if (!profile?.id) return;
+
+        const channel = supabase
+            .channel('user-notifications')
+            .on('postgres_changes', {
+                event: 'INSERT',
+                schema: 'public',
+                table: 'user_notifications',
+                filter: `user_id=eq.${profile.id}`,
+            }, (payload: { new: { id: string; title: string; message: string } }) => {
+                // Show toast
+                setToast({ id: payload.new.id, title: payload.new.title, message: payload.new.message });
+                setBadge(prev => prev + 1);
+                // Auto-dismiss after 5s
+                setTimeout(() => setToast(null), 5000);
+            })
+            .subscribe();
+
+        return () => {
+            supabase.removeChannel(channel);
+        };
+    }, [profile?.id]);
 
     async function logout() {
         await supabase.auth.signOut();
@@ -20,22 +53,43 @@ export default function UserHeader({ profile }: { profile: Profile | null }) {
 
     return (
         <>
+            {/* Toast Notification */}
+            {toast && (
+                <div className="fixed top-2 left-1/2 -translate-x-1/2 z-[70] w-[90%] max-w-[420px] animate-toast">
+                    <div className="bg-white border border-primary-200 rounded-2xl shadow-2xl p-3 flex items-start gap-3" onClick={() => { setToast(null); router.push('/notifications'); }}>
+                        <div className="w-9 h-9 bg-primary-100 rounded-xl flex items-center justify-center text-lg flex-shrink-0">🔔</div>
+                        <div className="flex-1 min-w-0">
+                            <h4 className="text-sm font-bold text-gray-800 truncate">{toast.title}</h4>
+                            <p className="text-[11px] text-gray-500 truncate">{toast.message}</p>
+                        </div>
+                        <button onClick={(e) => { e.stopPropagation(); setToast(null); }} className="text-gray-400 hover:text-gray-600 text-xs mt-0.5">✕</button>
+                    </div>
+                </div>
+            )}
+
             {/* Viewing bar */}
-            <div className="bg-gradient-to-r from-primary-600 to-primary-500 text-white text-center py-1.5 px-4 text-xs font-semibold tracking-wide">
+            <div className="bg-gradient-to-r from-primary-600 to-primary-500 text-white text-center py-1 px-4 text-[10px] font-semibold tracking-wide">
                 📍 বর্তমানে দেখছেন: {dist ? `${dist.name} জেলা, ${dist.divisionName} বিভাগ` : 'লোড হচ্ছে...'}
             </div>
 
             {/* Header */}
             <header className="bg-white border-b border-gray-100 sticky top-0 z-40" style={{ boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }}>
-                <div className="flex items-center justify-between h-14 px-4">
-                    <button onClick={() => setDrawerOpen(true)} className="w-9 h-9 flex items-center justify-center text-xl text-gray-600 rounded-full hover:bg-gray-100 transition-all">☰</button>
+                <div className="flex items-center justify-between h-12 px-3">
+                    <button onClick={() => setDrawerOpen(true)} className="w-8 h-8 flex items-center justify-center text-lg text-gray-600 rounded-full hover:bg-gray-100 transition-all">☰</button>
                     <div className="flex flex-col items-center">
-                        <span className="text-lg font-extrabold text-primary-600 leading-tight">{dist ? dist.name : 'আমার'} <span className="text-gray-800">City</span></span>
-                        <span className="text-[10px] text-gray-400 font-semibold tracking-widest">app</span>
+                        <span className="text-base font-extrabold text-primary-600 leading-tight">{dist ? dist.name : 'আমার'} <span className="text-gray-800">City</span></span>
+                        <span className="text-[9px] text-gray-400 font-semibold tracking-widest">app</span>
                     </div>
-                    <div className="flex items-center gap-1">
-                        <Link href="/notifications" className="w-9 h-9 flex items-center justify-center text-lg text-gray-600 rounded-full hover:bg-gray-100 transition-all">🔔</Link>
-                        <Link href="/settings" className="w-9 h-9 flex items-center justify-center text-lg text-gray-600 rounded-full hover:bg-gray-100 transition-all">⚙️</Link>
+                    <div className="flex items-center gap-0.5">
+                        <Link href="/notifications" className="relative w-8 h-8 flex items-center justify-center text-base text-gray-600 rounded-full hover:bg-gray-100 transition-all">
+                            🔔
+                            {badge > 0 && (
+                                <span className="absolute -top-0.5 -right-0.5 w-4 h-4 bg-red-500 text-white text-[8px] font-extrabold rounded-full flex items-center justify-center shadow-sm">
+                                    {badge > 9 ? '9+' : badge}
+                                </span>
+                            )}
+                        </Link>
+                        <Link href="/settings" className="w-8 h-8 flex items-center justify-center text-base text-gray-600 rounded-full hover:bg-gray-100 transition-all">⚙️</Link>
                     </div>
                 </div>
             </header>
