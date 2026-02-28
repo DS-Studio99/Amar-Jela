@@ -40,6 +40,7 @@ export interface ContentItem {
     metadata?: Record<string, string>;
     is_sponsored?: boolean;
     sponsored_until?: string;
+    images?: string[];
     created_at: string;
     updated_at: string;
     // joined

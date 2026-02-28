@@ -22,7 +22,7 @@ export default async function ServicePage({
     const effectiveDistrictId = districtId || profile?.selected_district_id || profile?.district_id || '';
     const district = getDistrict(effectiveDistrictId);
 
-    const [{ data: category }, { data: content }, { data: savedItems }] = await Promise.all([
+    const [{ data: category }, { data: content }, { data: savedItems }, { data: contentAds }] = await Promise.all([
         supabase.from('categories').select('*').eq('id', catId).single(),
         supabase.from('content')
             .select('*')
@@ -33,6 +33,7 @@ export default async function ServicePage({
             .order('is_sponsored', { ascending: false, nullsFirst: false })
             .order('created_at', { ascending: false }),
         supabase.from('saved_items').select('content_id').eq('user_id', user.id),
+        supabase.from('content_ads').select('*').eq('is_active', true),
     ]);
 
     const savedIds = new Set(savedItems?.map(s => s.content_id) || []);
@@ -69,6 +70,7 @@ export default async function ServicePage({
             districtId={effectiveDistrictId}
             userId={user.id}
             userName={profile?.name || ''}
+            contentAds={contentAds || []}
         />
     );
 }

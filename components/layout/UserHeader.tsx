@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { useState, useEffect } from 'react';
 import { createClient } from '@/lib/supabase/client';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 import { getDistrict } from '@/lib/data/bangladesh';
 import { Profile } from '@/types';
 import { useTheme } from 'next-themes';
@@ -21,6 +21,7 @@ export default function UserHeader({ profile, unreadCount = 0 }: { profile: Prof
     const [badge, setBadge] = useState(unreadCount);
     const [mounted, setMounted] = useState(false);
     const router = useRouter();
+    const pathname = usePathname();
     const { theme, setTheme } = useTheme();
     const supabase = createClient();
     const dist = profile ? getDistrict(profile.selected_district_id || profile.district_id) : null;
@@ -138,40 +139,52 @@ export default function UserHeader({ profile, unreadCount = 0 }: { profile: Prof
                 </div>
             )}
 
-            {/* Viewing bar */}
-            <div className="bg-gradient-to-r from-primary-600 to-primary-500 text-white text-center py-1 px-4 text-[10px] font-semibold tracking-wide flex items-center justify-center">
-                <span>📍 বর্তমানে দেখছেন: {dist ? `${dist.name} জেলা, ${dist.divisionName} বিভাগ` : 'লোড হচ্ছে...'}</span>
-            </div>
+            {/* Viewing bar and Header (Dashboard Only) */}
+            {pathname === '/dashboard' ? (
+                <>
+                    <div className="bg-gradient-to-r from-primary-600 to-primary-500 text-white text-center py-1 px-4 text-[10px] font-semibold tracking-wide flex items-center justify-center">
+                        <span>📍 বর্তমানে দেখছেন: {dist ? `${dist.name} জেলা, ${dist.divisionName} বিভাগ` : 'লোড হচ্ছে...'}</span>
+                    </div>
 
-            {/* Header */}
-            <header className="bg-white border-b border-gray-100 sticky top-0 z-40" style={{ boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }}>
-                <div className="flex items-center justify-between h-12 px-3">
-                    <button onClick={() => setDrawerOpen(true)} className="w-8 h-8 flex items-center justify-center text-lg text-gray-600 rounded-full hover:bg-gray-100 transition-all">☰</button>
-                    <div className="flex flex-col items-center">
-                        <span className="text-base font-extrabold text-primary-600 leading-tight">{dist ? dist.name : 'আমার'} <span className="text-gray-800">City</span></span>
-                        <span className="text-[9px] text-gray-400 font-semibold tracking-widest">app</span>
+                    <header className="bg-white border-b border-gray-100 sticky top-0 z-40" style={{ boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }}>
+                        <div className="flex items-center justify-between h-12 px-3">
+                            <button onClick={() => setDrawerOpen(true)} className="w-8 h-8 flex items-center justify-center text-lg text-gray-600 rounded-full hover:bg-gray-100 transition-all">☰</button>
+                            <div className="flex flex-col items-center">
+                                <span className="text-base font-extrabold text-primary-600 leading-tight">{dist ? dist.name : 'আমার'} <span className="text-gray-800">City</span></span>
+                                <span className="text-[9px] text-gray-400 font-semibold tracking-widest">app</span>
+                            </div>
+                            <div className="flex items-center gap-0.5">
+                                {mounted && (
+                                    <button
+                                        onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+                                        className="w-8 h-8 flex items-center justify-center text-base text-gray-600 rounded-full hover:bg-gray-100 transition-all"
+                                        title={theme === 'dark' ? 'লাইট মোড' : 'ডার্ক মোড'}
+                                    >
+                                        {theme === 'dark' ? '☀️' : '🌙'}
+                                    </button>
+                                )}
+                                <Link href="/notifications" className="relative w-8 h-8 flex items-center justify-center text-base text-gray-600 rounded-full hover:bg-gray-100 transition-all">
+                                    🔔
+                                    {badge > 0 && (
+                                        <span className="absolute -top-0.5 -right-0.5 w-4 h-4 bg-red-500 text-white text-[8px] font-extrabold rounded-full flex items-center justify-center shadow-sm">
+                                            {badge > 9 ? '9+' : badge}
+                                        </span>
+                                    )}
+                                </Link>
+                            </div>
+                        </div>
+                    </header>
+                </>
+            ) : !pathname.startsWith('/admin') && !pathname.startsWith('/service') ? (
+                /* Back Header for generic pages (Profile, Saved, Notifications etc.) */
+                <header className="bg-white/95 backdrop-blur-md border-b border-gray-100 sticky top-0 z-40" style={{ boxShadow: '0 1px 6px rgba(0,0,0,0.04)' }}>
+                    <div className="flex items-center h-[52px] px-4">
+                        <button onClick={() => router.back()} className="flex items-center gap-1.5 text-gray-600 hover:text-gray-900 transition-colors text-[13px] font-bold">
+                            <span className="text-xl">←</span> ফিরে যান
+                        </button>
                     </div>
-                    <div className="flex items-center gap-0.5">
-                        {mounted && (
-                            <button
-                                onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-                                className="w-8 h-8 flex items-center justify-center text-base text-gray-600 rounded-full hover:bg-gray-100 transition-all"
-                                title={theme === 'dark' ? 'লাইট মোড' : 'ডার্ক মোড'}
-                            >
-                                {theme === 'dark' ? '☀️' : '🌙'}
-                            </button>
-                        )}
-                        <Link href="/notifications" className="relative w-8 h-8 flex items-center justify-center text-base text-gray-600 rounded-full hover:bg-gray-100 transition-all">
-                            🔔
-                            {badge > 0 && (
-                                <span className="absolute -top-0.5 -right-0.5 w-4 h-4 bg-red-500 text-white text-[8px] font-extrabold rounded-full flex items-center justify-center shadow-sm">
-                                    {badge > 9 ? '9+' : badge}
-                                </span>
-                            )}
-                        </Link>
-                    </div>
-                </div>
-            </header>
+                </header>
+            ) : null}
 
             {/* Side Drawer */}
             {drawerOpen && (

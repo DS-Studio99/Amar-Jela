@@ -143,6 +143,21 @@ export default function AdminContentClient({ content, categories, divisions }: P
                                     <span className="font-semibold text-gray-800 text-right max-w-[60%]">{v as string}</span>
                                 </div>
                             ))}
+
+                            {/* Show attached images if any */}
+                            {detail.images && detail.images.length > 0 && (
+                                <div className="pt-2 border-t border-gray-100">
+                                    <span className="text-sm text-gray-500 block mb-2 font-semibold">সংযুক্ত ছবিসমূহ:</span>
+                                    <div className="flex gap-2 overflow-x-auto pb-2">
+                                        {detail.images.map((imgUrl, idx) => (
+                                            <a key={idx} href={imgUrl} target="_blank" rel="noopener noreferrer" className="flex-shrink-0">
+                                                <img src={imgUrl} alt="Attached" className="h-20 w-auto rounded-lg border border-gray-200 object-cover" />
+                                            </a>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+
                             <div className="flex gap-3 pt-2">
                                 {detail.status !== 'approved' && <button onClick={() => updateStatus(detail.id, 'approved')} className="btn-primary flex-1 text-sm py-2.5">✅ অনুমোদন</button>}
                                 {detail.status !== 'rejected' && <button onClick={() => updateStatus(detail.id, 'rejected')} className="btn-danger flex-1 text-sm py-2.5">❌ প্রত্যাখ্যান</button>}

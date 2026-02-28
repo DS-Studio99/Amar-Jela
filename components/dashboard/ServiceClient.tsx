@@ -1,12 +1,25 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
 import { Category, ContentItem, Review } from '@/types';
 import { District } from '@/types';
 import { useRouter } from 'next/navigation';
 import { getCategoryConfig, CategoryField } from '@/lib/data/category-fields';
+
+export interface ContentAd {
+    id: string;
+    title?: string;
+    image_url: string;
+    target_link?: string;
+    display_size: string;
+    views: number;
+    clicks: number;
+    is_active: boolean;
+    start_date: string;
+    end_date: string;
+}
 
 interface Props {
     category: Category | null;
@@ -15,18 +28,22 @@ interface Props {
     districtId: string;
     userId: string;
     userName: string;
+    contentAds?: ContentAd[];
 }
 
-export default function ServiceClient({ category, items, district, districtId, userId, userName }: Props) {
+export default function ServiceClient({ category, items, district, districtId, userId, userName, contentAds = [] }: Props) {
     const [modalOpen, setModalOpen] = useState(false);
     const [loading, setLoading] = useState(false);
     const [success, setSuccess] = useState(false);
     const [formData, setFormData] = useState<Record<string, string>>({});
     const [error, setError] = useState('');
     const [detailItem, setDetailItem] = useState<ContentItem | null>(null);
+    const [selectedImages, setSelectedImages] = useState<File[]>([]);
+    const [selectedDisease, setSelectedDisease] = useState<string | null>(null);
     const [warningAccepted, setWarningAccepted] = useState(false);
     const [showWarning, setShowWarning] = useState(false);
     const [reviews, setReviews] = useState<Review[]>([]);
+    const [cardRatings, setCardRatings] = useState<Record<string, { avg: number, count: number }>>({});
     const [loadingReviews, setLoadingReviews] = useState(false);
     const [userRating, setUserRating] = useState(5);
     const [userComment, setUserComment] = useState('');
@@ -37,12 +54,62 @@ export default function ServiceClient({ category, items, district, districtId, u
     const catConfig = getCategoryConfig(category?.name || '');
     const isDoctor = category?.name === 'ডাক্তার';
 
+    const DISEASE_CATEGORIES = [
+        { name: 'মনোরোগ বিশেষজ্ঞ', icon: '🧠' }, { name: 'হৃদরোগ বিশেষজ্ঞ', icon: '❤️' },
+        { name: 'পাইলস বিশেষজ্ঞ', icon: '👨‍⚕️' }, { name: 'ডেন্টিস্ট', icon: '🦷' },
+        { name: 'চর্ম ও যৌন রোগ', icon: '🧬' }, { name: 'ডায়াবেটিস ও হরমোন', icon: '🩸' },
+        { name: 'নাক, কান ও গলা', icon: '👂' }, { name: 'চক্ষু বিশেষজ্ঞ', icon: '👁️' },
+        { name: 'লিভার বিশেষজ্ঞ', icon: '🫀' }, { name: 'ইউরোলজি', icon: '🚾' },
+        { name: 'সার্জারি', icon: '✂️' }, { name: 'গাইনি বিশেষজ্ঞ', icon: '🤰' },
+        { name: 'রক্তরোগ বিশেষজ্ঞ', icon: '🩸' }, { name: 'হোমিওপ্যাথি', icon: '💊' },
+        { name: 'লেজার সার্জারি', icon: '⚡' }, { name: 'মেডিসিন বিশেষজ্ঞ', icon: '🩺' },
+        { name: 'কিডনি রোগ বিশেষজ্ঞ', icon: '🫘' }, { name: 'নিউরো সার্জারি', icon: '🧠' },
+        { name: 'স্নায়ু রোগ বিশেষজ্ঞ', icon: '⚡' }, { name: 'পুষ্টি বিশেষজ্ঞ', icon: '🥗' },
+        { name: 'ক্যান্সার বিশেষজ্ঞ', icon: '🎗️' }, { name: 'অর্থোপেডিক', icon: '🦴' },
+        { name: 'ব্যাথা বিশেষজ্ঞ', icon: '🤕' }, { name: 'শিশু রোগ বিশেষজ্ঞ', icon: '👶' },
+        { name: 'ফিজিক্যাল মেডিসিন', icon: '🏃‍♂️' }, { name: 'ফিজিও থেরাপিস্ট', icon: '💆‍♂️' },
+        { name: 'প্লাস্টিক সার্জারি', icon: '🎭' }, { name: 'বক্ষব্যাধি বিশেষজ্ঞ', icon: '🫁' },
+        { name: 'অ্যানাস্থেসিওলজিস্ট', icon: '💉' }, { name: 'পশু চিকিৎসক', icon: '🐶' },
+    ];
+
+    // Filter items if a disease is selected
+    const displayItems = isDoctor && selectedDisease
+        ? items.filter(item => (item.metadata as Record<string, string>)?.specialty === selectedDisease)
+        : items;
+
     // Show financial warning on page load for specific categories
     useEffect(() => {
         if (catConfig.showWarning && !warningAccepted) {
             setShowWarning(true);
         }
     }, [catConfig.showWarning, warningAccepted]);
+
+    // Fetch ratings for all displayed items
+    useEffect(() => {
+        if (items.length > 0) {
+            async function fetchRatings() {
+                const itemIds = items.map(i => i.id);
+                const { data } = await supabase.from('reviews').select('content_id, rating').in('content_id', itemIds);
+                if (data) {
+                    const ratingsMap: Record<string, { sum: number, count: number }> = {};
+                    data.forEach(r => {
+                        if (!ratingsMap[r.content_id]) ratingsMap[r.content_id] = { sum: 0, count: 0 };
+                        ratingsMap[r.content_id].sum += r.rating;
+                        ratingsMap[r.content_id].count += 1;
+                    });
+                    const finalMap: Record<string, { avg: number, count: number }> = {};
+                    for (const id in ratingsMap) {
+                        finalMap[id] = {
+                            avg: parseFloat((ratingsMap[id].sum / ratingsMap[id].count).toFixed(1)),
+                            count: ratingsMap[id].count
+                        };
+                    }
+                    setCardRatings(finalMap);
+                }
+            }
+            fetchRatings();
+        }
+    }, [items, selectedDisease]);
 
     // Fetch reviews when detail modal opens
     useEffect(() => {
@@ -72,30 +139,104 @@ export default function ServiceClient({ category, items, district, districtId, u
         if (!detailItem) return;
 
         setSubmittingReview(true);
-        await supabase.from('reviews').upsert({
-            content_id: detailItem.id,
-            user_id: userId,
-            rating: userRating,
-            comment: userComment.trim() || null,
-        }, { onConflict: 'content_id,user_id' });
 
-        await loadReviews(detailItem.id);
+        try {
+            const { data: existingReview } = await supabase.from('reviews')
+                .select('id').eq('content_id', detailItem.id).eq('user_id', userId).maybeSingle();
+
+            let err;
+            if (existingReview) {
+                const result = await supabase.from('reviews').update({
+                    rating: userRating,
+                    comment: userComment.trim() || null,
+                }).eq('id', existingReview.id);
+                err = result.error;
+            } else {
+                const result = await supabase.from('reviews').insert({
+                    content_id: detailItem.id,
+                    user_id: userId,
+                    rating: userRating,
+                    comment: userComment.trim() || null,
+                });
+                err = result.error;
+            }
+
+            if (err) {
+                window.alert('রিভিউ জমা দিতে সমস্যা হয়েছে: ' + err.message);
+            } else {
+                await loadReviews(detailItem.id);
+                setUserComment('');
+
+                // Update specific card rating in state
+                const { data: fetchAll } = await supabase.from('reviews').select('rating').eq('content_id', detailItem.id);
+                if (fetchAll) {
+                    const sum = fetchAll.reduce((acc, r) => acc + r.rating, 0);
+                    setCardRatings(prev => ({
+                        ...prev, [detailItem.id]: { avg: parseFloat((sum / fetchAll.length).toFixed(1)), count: fetchAll.length }
+                    }));
+                }
+            }
+        } catch (e: any) {
+            console.error('Submission error:', e);
+        }
+
         setSubmittingReview(false);
-        setUserComment('');
     }
 
     async function reportItem(item: ContentItem) {
         if (!userId) { router.push('/login'); return; }
-        const reason = window.prompt('কেন রিপোর্ট করতে চান? (যেমন: ভুল নম্বর, ভুয়া তথ্য)');
-        if (!reason?.trim()) return;
-
+        const reason = window.prompt("রিপোর্ট করার কারণ লিখুন:");
+        if (!reason) return;
         await supabase.from('reports').insert({
             content_id: item.id,
             user_id: userId,
-            reason: reason.trim()
+            reason: reason,
         });
-        window.alert('আপনার রিপোর্টটি জমা দেওয়া হয়েছে। এডমিন এটি যাচাই করে দেখবেন।');
+        window.alert("রিপোর্ট পাঠানো হয়েছে। ধন্যবাদ!");
     }
+
+    async function handleDelete(itemId: string) {
+        if (!confirm('আপনি কি এই পোস্টটি মুছে ফেলতে চান?')) return;
+        setLoading(true);
+        const { error } = await supabase.from('content').delete().eq('id', itemId).eq('submitted_by', userId);
+        setLoading(false);
+        if (error) {
+            alert('মুছতে সমস্যা হয়েছে: ' + error.message);
+        } else {
+            alert('পোস্টটি মুছে ফেলা হয়েছে।');
+            router.refresh();
+        }
+    }
+
+    const viewedAds = useRef<Set<string>>(new Set());
+
+    const handleAdClick = async (ad: ContentAd) => {
+        if (ad.target_link) window.open(ad.target_link, '_blank');
+        await supabase.rpc('increment_ad_clicks', { ad_id: ad.id });
+    };
+
+    const renderAd = (ad: ContentAd) => (
+        <div
+            key={`ad-${ad.id}`}
+            className="my-3 rounded-xl overflow-hidden shadow-sm border border-gray-100 relative group cursor-pointer"
+            onClick={() => handleAdClick(ad)}
+            ref={(el) => {
+                if (el && !viewedAds.current.has(ad.id)) {
+                    viewedAds.current.add(ad.id); // Add immediately to prevent multiple observers
+                    const observer = new IntersectionObserver((entries) => {
+                        if (entries[0].isIntersecting) {
+                            supabase.rpc('increment_ad_views', { ad_id: ad.id }).then();
+                            observer.disconnect();
+                        }
+                    }, { threshold: 0.5 });
+                    observer.observe(el);
+                }
+            }}
+        >
+            <img src={ad.image_url} alt={ad.title || "Advertisement"} className="w-full h-auto object-cover max-h-32" />
+            <div className="absolute top-1 right-1 bg-black/40 backdrop-blur-sm text-white text-[8px] px-1.5 py-0.5 rounded shadow">SPONSORED</div>
+        </div>
+    );
 
     function updateField(key: string, value: string) {
         setFormData(prev => ({ ...prev, [key]: value }));
@@ -105,6 +246,7 @@ export default function ServiceClient({ category, items, district, districtId, u
         setFormData({});
         setError('');
         setSuccess(false);
+        setSelectedImages([]);
         setModalOpen(true);
     }
 
@@ -122,6 +264,20 @@ export default function ServiceClient({ category, items, district, districtId, u
         setError('');
 
         const { data: profile } = await supabase.from('profiles').select('division_id').eq('id', userId).single();
+
+        let imageUrls: string[] = [];
+        if (selectedImages.length > 0) {
+            for (const file of selectedImages) {
+                const fileExt = file.name.split('.').pop();
+                const fileName = `${Math.random()}.${fileExt}`;
+                const filePath = `${userId}/${fileName}`;
+                const { error: uploadError } = await supabase.storage.from('content_images').upload(filePath, file);
+                if (!uploadError) {
+                    const { data: { publicUrl } } = supabase.storage.from('content_images').getPublicUrl(filePath);
+                    imageUrls.push(publicUrl);
+                }
+            }
+        }
 
         // Separate standard fields from metadata
         const standardFields = ['title', 'phone', 'address', 'description'];
@@ -141,6 +297,7 @@ export default function ServiceClient({ category, items, district, districtId, u
             address: formData.address || '',
             description: formData.description || '',
             metadata: metadata,
+            images: imageUrls,
             submitted_by: userId,
             submitted_by_name: userName,
             status: 'pending',
@@ -214,25 +371,26 @@ export default function ServiceClient({ category, items, district, districtId, u
                 {/* Card Header */}
                 <div className="p-3 pb-2">
                     <div className="flex items-start gap-2.5">
-                        {/* Icon */}
-                        <div
-                            className="w-9 h-9 rounded-xl flex items-center justify-center text-lg flex-shrink-0 transition-all duration-200 group-hover:scale-105"
-                            style={{
-                                background: `linear-gradient(135deg, ${accentColor}12, ${accentColor}25)`,
-                            }}
-                        >
-                            {category?.icon}
-                        </div>
-                        {/* Title & Phone */}
-                        <div className="flex-1 min-w-0 pr-7">
-                            <h3 className="font-bold text-gray-800 text-[13px] leading-snug">{item.title}</h3>
+                        {/* Avatar / Icon */}
+                        {item.images && item.images.length > 0 ? (
+                            <img
+                                src={item.images[0]}
+                                alt={item.title}
+                                className="w-11 h-11 rounded-xl object-cover shadow-sm flex-shrink-0 transition-transform duration-200 group-hover:scale-105"
+                            />
+                        ) : (
+                            <div
+                                className="w-11 h-11 rounded-xl flex items-center justify-center text-xl flex-shrink-0 transition-all duration-200 group-hover:scale-105"
+                                style={{ background: `linear-gradient(135deg, ${accentColor}12, ${accentColor}25)` }}
+                            >
+                                {category?.icon}
+                            </div>
+                        )}
+                        {/* Title Info */}
+                        <div className="flex-1 min-w-0 pr-7 pt-0.5">
+                            <h3 className="font-bold text-gray-800 text-[15px] leading-snug">{item.title}</h3>
                             {isDoctor && meta.specialty && (
-                                <span className="inline-flex items-center gap-1 mt-0.5 px-1.5 py-0.5 bg-blue-50 text-blue-600 rounded text-[10px] font-bold">🩺 {meta.specialty}</span>
-                            )}
-                            {item.phone && (
-                                <a href={`tel:${item.phone}`} className="flex items-center gap-1 mt-1 text-primary-600 text-xs font-semibold hover:underline">
-                                    📞 {item.phone}
-                                </a>
+                                <span className="inline-flex items-center gap-1 mt-1 px-1.5 py-0.5 bg-blue-50 text-blue-600 rounded text-[11px] font-bold">🩺 {meta.specialty}</span>
                             )}
                         </div>
                         {/* Save Button */}
@@ -245,16 +403,34 @@ export default function ServiceClient({ category, items, district, districtId, u
                                 <path strokeLinecap="round" strokeLinejoin="round" d="M11.998 21.054c-1.448-1.396-8.998-8.151-8.998-13.054 0-2.761 2.239-5 5-5 2.053 0 3.829 1.258 4.75 3.125A5.253 5.253 0 0 1 17.5 3c2.761 0 5 2.239 5 5 0 4.903-7.55 11.658-8.998 13.054a1.496 1.496 0 0 1-1.504 0Z" />
                             </svg>
                         </button>
+                        {/* Delete Button (If House Rent and Owner) */}
+                        {category?.name === 'বাড়ি ভাড়া' && item.submitted_by === userId && (
+                            <button
+                                onClick={(e) => { e.stopPropagation(); handleDelete(item.id); }}
+                                className={`absolute top-2.5 right-11 w-7 h-7 rounded-full flex items-center justify-center transition-all duration-200 bg-red-50 text-red-500 hover:bg-red-100`}
+                                title="পোস্টটি মুছুন"
+                            >
+                                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                </svg>
+                            </button>
+                        )}
+                        {/* Rating Badge */}
+                        {cardRatings[item.id] && cardRatings[item.id].count > 0 && (
+                            <div className={`absolute top-2.5 right-${category?.name === 'বাড়ি ভাড়া' && item.submitted_by === userId ? '20' : '11'} bg-white border border-amber-200 text-amber-600 text-[10px] font-bold px-1.5 py-0.5 rounded-md flex items-center gap-0.5 shadow-sm`}>
+                                <span className="text-[10px]">⭐</span> {cardRatings[item.id].avg}
+                            </div>
+                        )}
                     </div>
                 </div>
 
                 {/* Highlighted Fields (Visit time, Fee, etc.) */}
                 {(isDoctor || Object.keys(meta).length > 0) && catConfig.fields.filter(f => f.highlight && meta[f.key]).length > 0 && (
-                    <div className="mx-3 mb-1.5 flex flex-wrap gap-1">
+                    <div className="mx-3 mb-2 flex flex-wrap gap-1.5">
                         {catConfig.fields.filter(f => f.highlight && meta[f.key]).map(field => (
-                            <div key={field.key} className="inline-flex items-center gap-1 py-0.5 px-2 bg-amber-50 border border-amber-200/50 rounded">
-                                <span className="text-[9px] font-bold text-amber-600">{field.label}:</span>
-                                <span className="text-[9px] font-extrabold text-amber-800">{meta[field.key]}</span>
+                            <div key={field.key} className="inline-flex items-center gap-1 py-1 px-2.5 bg-amber-50 border border-amber-200/50 rounded-md">
+                                <span className="text-[10px] font-bold text-amber-600">{field.label}:</span>
+                                <span className="text-[11px] font-extrabold text-amber-800">{meta[field.key]}</span>
                             </div>
                         ))}
                     </div>
@@ -262,46 +438,74 @@ export default function ServiceClient({ category, items, district, districtId, u
 
                 {/* Address */}
                 {item.address && (
-                    <div className="mx-3 mb-1.5">
+                    <div className="mx-3 mb-2">
                         <a
-                            href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(item.address + (district?.name ? `, ${district.name}` : ''))}`}
+                            href={meta.map_link || `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(item.address + (district?.name ? `, ${district.name}` : ''))}`}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="text-[10px] text-gray-500 flex items-start gap-1 hover:text-primary-600 transition-colors group/addr"
+                            className="text-xs font-bold text-gray-700 flex items-start gap-1 hover:text-primary-600 transition-colors group/addr"
                             title="ম্যাপে দেখুন"
                         >
                             <span className="flex-shrink-0 mt-0.5 group-hover/addr:scale-110 transition-transform">📍</span>
-                            <span className="group-hover/addr:underline line-clamp-1">{item.address}</span>
+                            <span className="group-hover/addr:underline line-clamp-2">{item.address}</span>
                         </a>
                     </div>
                 )}
 
-                {/* Meta fields (non-highlighted) */}
-                {Object.keys(meta).length > 0 && (
-                    <div className="mx-3 mb-1.5 flex flex-wrap gap-1">
-                        {catConfig.fields.filter(f => !f.highlight && f.key !== 'title' && f.key !== 'phone' && f.key !== 'address' && f.key !== 'description' && meta[f.key]).map(field => (
-                            <span key={field.key} className="inline-flex items-center px-1.5 py-0.5 bg-gray-50 text-gray-600 rounded text-[9px] font-medium border border-gray-100">
-                                {field.label.replace(/[⏰💰📞🩸🛣️🛤️🎟️📍🏢🎓📅💍💼📰🏫📚🛍️📦👮📱🚗🍽️🏊🚨📞]/g, '').trim()}: {meta[field.key]}
-                            </span>
+                <div className="mx-3 mb-2 flex flex-wrap gap-1.5">
+                    {catConfig.fields.filter(f => !f.highlight && f.key !== 'title' && f.key !== 'phone' && f.key !== 'address' && f.key !== 'description' && f.key !== 'map_link' && meta[f.key]).map(field => (
+                        <span key={field.key} className="inline-flex items-center px-1.5 py-0.5 bg-gray-50 text-gray-700 rounded text-[10px] font-bold border border-gray-100">
+                            {field.label.replace(/[⏰💰📞🩸🛣️🛤️🎟️📍🏢🎓📅💍💼📰🏫📚🛍️📦👮📱🚗🍽️🏊🚨📞]/g, '').trim()}: {meta[field.key]}
+                        </span>
+                    ))}
+                </div>
+
+                {/* Description (truncated) */}
+                {item.description && (
+                    <div className="mx-3 mb-2">
+                        <p className="text-[11px] text-gray-600 bg-gray-50/80 p-2.5 rounded-lg line-clamp-2 leading-relaxed font-medium">{item.description}</p>
+                    </div>
+                )}
+
+                {/* Images Preview inline */}
+                {item.images && item.images.length > 0 && (
+                    <div className="mx-3 mt-2 mb-2 flex gap-2 overflow-x-auto snap-x select-none pb-1" style={{ scrollbarWidth: 'none' }}>
+                        {item.images.slice(1).map((imgUrl: string, idx: number) => (
+                            <img
+                                key={idx}
+                                src={imgUrl}
+                                alt="Content Attachment"
+                                className="h-24 w-auto rounded-lg border border-gray-100 shadow-sm snap-center object-cover cursor-pointer hover:opacity-90 transition-opacity"
+                                onClick={(e) => { e.stopPropagation(); window.open(imgUrl, '_blank'); }}
+                            />
                         ))}
                     </div>
                 )}
 
-                {/* Description (truncated) */}
-                {item.description && (
-                    <div className="mx-3 mb-1.5">
-                        <p className="text-[10px] text-gray-600 bg-gray-50/80 p-2 rounded-lg line-clamp-2 leading-relaxed">{item.description}</p>
-                    </div>
-                )}
-
                 {/* Card Footer */}
-                <div className="px-3 pb-2.5 pt-0.5 flex items-center justify-between">
-                    <div className="flex items-center gap-2 text-[9px] text-gray-400">
+                <div className="px-3 pb-3 pt-1 border-t border-gray-50 flex items-center justify-between gap-2 mt-1">
+                    <div className="flex items-center gap-1 text-[10px] text-gray-400 font-bold bg-gray-50 px-2 py-1 rounded-md">
                         {item.views !== undefined && <span>👁 {item.views}</span>}
                     </div>
-                    <button onClick={() => setDetailItem(item)} className="text-[10px] text-primary-600 font-bold hover:text-primary-700 flex items-center gap-1 bg-primary-50/80 px-2.5 py-1 rounded-lg hover:bg-primary-100 transition-all active:scale-95">
-                        বিস্তারিত →
-                    </button>
+
+                    <div className="flex flex-1 items-center justify-end gap-1.5">
+                        {item.phone && (
+                            <a href={`tel:${item.phone}`} onClick={e => e.stopPropagation()} className="btn-primary text-[11px] py-1.5 px-3 flex-1 max-w-[110px] shadow-sm hover:shadow-md">
+                                📞 সিরিয়াল নিন
+                            </a>
+                        )}
+                        <a
+                            href={meta.map_link || `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(item.address + (district?.name ? `, ${district.name}` : ''))}`}
+                            target="_blank" rel="noopener noreferrer" onClick={e => e.stopPropagation()}
+                            className="bg-blue-50 text-blue-600 hover:bg-blue-100 text-[11px] py-1.5 px-2.5 rounded-xl font-bold transition-colors shadow-sm"
+                            title="ম্যাপ"
+                        >
+                            📍 ম্যাপ
+                        </a>
+                        <button onClick={() => setDetailItem(item)} className="bg-gray-100 text-gray-700 hover:bg-gray-200 text-[11px] py-1.5 px-2.5 rounded-xl font-bold transition-colors shadow-sm">
+                            বিস্তারিত
+                        </button>
+                    </div>
                 </div>
             </div>
         );
@@ -330,34 +534,68 @@ export default function ServiceClient({ category, items, district, districtId, u
                 </div>
             )}
 
-            {/* Back + Header — fixed below UserHeader (h-12) */}
-            <div className="fixed top-12 left-0 right-0 z-30 bg-white/95 backdrop-blur-md border-b border-gray-100" style={{ boxShadow: '0 1px 6px rgba(0,0,0,0.04)' }}>
-                <div className="max-w-[480px] mx-auto px-3 py-1.5 flex items-center justify-between">
-                    <Link href="/dashboard" className="flex items-center gap-0.5 text-gray-400 hover:text-gray-600 transition-colors text-[11px] font-medium">
-                        ← ফিরে যান
-                    </Link>
+            {/* Back + Header — fixed (since UserHeader is null here) */}
+            <div className="fixed top-0 left-0 right-0 z-30 bg-white/95 backdrop-blur-md border-b border-gray-100" style={{ boxShadow: '0 1px 6px rgba(0,0,0,0.04)' }}>
+                <div className="max-w-[480px] mx-auto h-[52px] px-3 flex items-center justify-between">
+                    {isDoctor && selectedDisease ? (
+                        <button onClick={() => setSelectedDisease(null)} className="flex items-center gap-0.5 text-gray-400 hover:text-gray-600 transition-colors text-[11px] font-medium">
+                            ← ফিরে যান
+                        </button>
+                    ) : (
+                        <Link href="/dashboard" className="flex items-center gap-0.5 text-gray-400 hover:text-gray-600 transition-colors text-[11px] font-medium">
+                            ← ফিরে যান
+                        </Link>
+                    )}
                     <div className="text-center flex items-center gap-1.5">
                         <span className="text-base">{category?.icon}</span>
-                        <span className="text-[11px] font-bold text-gray-700">{category?.name}</span>
+                        <span className="text-[11px] font-bold text-gray-700">{selectedDisease || category?.name}</span>
                         <span className="text-[9px] text-gray-400">• {district ? district.name : 'জেলা'}</span>
                     </div>
-                    <button onClick={openAddModal} className="text-[10px] bg-gradient-to-r from-primary-500 to-primary-600 text-white px-2.5 py-1 rounded-lg font-semibold hover:from-primary-600 hover:to-primary-700 transition-all shadow-sm active:scale-95">+ যোগ</button>
+                    {(!isDoctor || selectedDisease) && (
+                        <button onClick={openAddModal} className="text-[10px] bg-gradient-to-r from-primary-500 to-primary-600 text-white px-2.5 py-1 rounded-lg font-semibold hover:from-primary-600 hover:to-primary-700 transition-all shadow-sm active:scale-95">+ যোগ</button>
+                    )}
                 </div>
             </div>
 
-            {/* Spacer for both headers */}
-            <div className="h-[40px]" />
+            {/* Spacer for header */}
+            <div className="h-[52px]" />
 
             {/* Content List */}
             <div className="p-2.5 space-y-2">
-                {items.length === 0 ? (
+                {isDoctor && !selectedDisease ? (
+                    // Doctor Category Grid UI
+                    <div className="grid grid-cols-3 gap-2">
+                        {DISEASE_CATEGORIES.map(disease => (
+                            <button
+                                key={disease.name}
+                                onClick={() => setSelectedDisease(disease.name)}
+                                className="bg-white rounded-xl p-3 flex flex-col items-center justify-center gap-2 shadow-sm border border-gray-100 hover:shadow-md transition-all group"
+                            >
+                                <div className="text-3xl group-hover:scale-110 transition-transform">{disease.icon}</div>
+                                <div className="text-[10px] font-bold text-gray-700 text-center leading-tight">{disease.name}</div>
+                            </button>
+                        ))}
+                    </div>
+                ) : displayItems.length === 0 ? (
                     <div className="flex flex-col items-center justify-center py-16 text-gray-400">
                         <div className="text-6xl mb-4 opacity-30">{category?.icon || '📭'}</div>
                         <p className="font-bold text-gray-500 text-base">কোনো তথ্য পাওয়া যায়নি</p>
-                        <p className="text-sm mt-1.5 text-center text-gray-400">এই জেলায় {category?.name} এর তথ্য যোগ করুন!</p>
+                        <p className="text-sm mt-1.5 text-center text-gray-400">এই জেলায় {selectedDisease || category?.name} এর তথ্য যোগ করুন!</p>
                         <button onClick={openAddModal} className="btn-primary mt-6 text-sm px-6 py-3 shadow-xl">+ প্রথম তথ্য যোগ করুন</button>
                     </div>
-                ) : items.map(item => renderContentCard(item))}
+                ) : displayItems.map((item, index) => {
+                    // Valid Ads to show
+                    const validAds = contentAds && contentAds.length > 0 ? contentAds : null;
+                    const adIndex = validAds ? Math.floor(index / 4) % validAds.length : -1;
+                    const ad = validAds ? validAds[adIndex] : null;
+
+                    return (
+                        <React.Fragment key={item.id}>
+                            {index > 0 && index % 4 === 0 && ad && renderAd(ad)}
+                            {renderContentCard(item)}
+                        </React.Fragment>
+                    );
+                })}
             </div>
 
             {/* Submit Modal */}
@@ -400,6 +638,44 @@ export default function ServiceClient({ category, items, district, districtId, u
                                             {renderFieldInput(field)}
                                         </div>
                                     ))}
+
+                                    {/* Image Upload Input */}
+                                    <div>
+                                        <label className="text-sm font-semibold text-gray-700 mb-1.5 block">
+                                            ছবি সংযুক্ত করুন {category?.name === 'বাড়ি ভাড়া' ? '(সর্বোচ্চ ৩টি)' : '(সর্বোচ্চ ১টি)'}
+                                        </label>
+                                        <input
+                                            type="file"
+                                            accept="image/*"
+                                            multiple={category?.name === 'বাড়ি ভাড়া'}
+                                            className="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border file:border-primary-100 file:text-sm file:font-semibold file:bg-primary-50 file:text-primary-700 hover:file:bg-primary-100 cursor-pointer"
+                                            onChange={e => {
+                                                if (e.target.files) {
+                                                    const files = Array.from(e.target.files);
+                                                    const maxFiles = category?.name === 'বাড়ি ভাড়া' ? 3 : 1;
+                                                    if (files.length > maxFiles) {
+                                                        alert(`আপনি সর্বোচ্চ ${maxFiles}টি ছবি আপলোড করতে পারবেন।`);
+                                                        setSelectedImages(files.slice(0, maxFiles));
+                                                    } else {
+                                                        setSelectedImages(files);
+                                                    }
+                                                }
+                                            }}
+                                        />
+                                        {selectedImages.length > 0 && (
+                                            <div className="flex gap-2 mt-3 flex-wrap">
+                                                {selectedImages.map((file, idx) => (
+                                                    <div key={idx} className="relative w-20 h-20 rounded-xl overflow-hidden border border-gray-200 shadow-sm">
+                                                        <img src={URL.createObjectURL(file)} alt="preview" className="w-full h-full object-cover" />
+                                                        <button
+                                                            onClick={() => setSelectedImages(prev => prev.filter((_, i) => i !== idx))}
+                                                            className="absolute top-1 right-1 bg-red-500/80 hover:bg-red-600 text-white rounded-full w-5 h-5 flex items-center justify-center text-[10px] backdrop-blur-sm transition-all"
+                                                        >✕</button>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        )}
+                                    </div>
 
                                     <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 text-xs text-amber-700 flex items-start gap-2">
                                         <span className="text-base">⚠️</span>
@@ -457,7 +733,7 @@ export default function ServiceClient({ category, items, district, districtId, u
                                     <div className="flex justify-between items-center py-1 border-t border-gray-200/60 group">
                                         <span className="text-sm text-gray-500">📍 ঠিকানা</span>
                                         <a
-                                            href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(detailItem.address + (district?.name ? `, ${district.name}` : ''))}`}
+                                            href={(detailItem.metadata as Record<string, string>)?.map_link || `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(detailItem.address + (district?.name ? `, ${district.name}` : ''))}`}
                                             target="_blank"
                                             rel="noopener noreferrer"
                                             className="text-sm font-semibold text-gray-800 text-right max-w-[55%] hover:text-primary-600 hover:underline transition-colors flex items-center justify-end gap-1"
@@ -487,17 +763,35 @@ export default function ServiceClient({ category, items, district, districtId, u
                                 );
                             })()}
 
+                            {/* Images Gallery in Detail View */}
+                            {detailItem.images && detailItem.images.length > 0 && (
+                                <div className="space-y-2">
+                                    <h4 className="text-sm font-bold text-gray-700">📸 সংযুক্ত ছবিসমূহ</h4>
+                                    <div className="grid grid-cols-2 lg:grid-cols-3 gap-2">
+                                        {detailItem.images.map((imgUrl: string, idx: number) => (
+                                            <a key={idx} href={imgUrl} target="_blank" rel="noopener noreferrer" className="block w-full h-32 rounded-xl overflow-hidden border border-gray-200 shadow-sm hover:shadow-md transition-all group">
+                                                <img
+                                                    src={imgUrl}
+                                                    alt={`Attachment ${idx + 1}`}
+                                                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                                                />
+                                            </a>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+
                             {/* All Metadata */}
                             {(() => {
                                 const meta = (detailItem.metadata || {}) as Record<string, string>;
-                                const otherFields = catConfig.fields.filter(f => !f.highlight && !['title', 'phone', 'address', 'description'].includes(f.key) && meta[f.key]);
+                                const otherFields = catConfig.fields.filter(f => !f.highlight && !['title', 'phone', 'address', 'description', 'map_link'].includes(f.key) && meta[f.key]);
                                 if (otherFields.length === 0) return null;
                                 return (
                                     <div className="bg-gray-50 rounded-2xl p-4 space-y-2">
                                         {otherFields.map(field => (
                                             <div key={field.key} className="flex justify-between items-center py-1.5 border-b border-gray-100 last:border-0">
                                                 <span className="text-sm text-gray-500">{field.label.replace(/[⏰💰📞🩸🛣️🛤️🎟️📍🏢🎓📅💍💼📰🏫📚🛍️📦👮📱🚗🍽️🏊🚨📞]/g, '').trim()}</span>
-                                                <span className="text-sm font-semibold text-gray-800 text-right max-w-[55%]">{meta[field.key]}</span>
+                                                <span className="text-sm font-semibold text-gray-800 text-right max-w-[55%] whitespace-pre-wrap">{meta[field.key]}</span>
                                             </div>
                                         ))}
                                     </div>

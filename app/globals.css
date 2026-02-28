@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@300;400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Tiro+Bangla:ital,wght@0,400;0,700&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -20,7 +20,8 @@
     }
 
     body {
-        font-family: 'Hind Siliguri', 'Noto Sans Bengali', sans-serif;
+        font-family: 'SutonnyMJ', 'SutonnyOMJ', 'SolaimanLipi', 'Tiro Bangla', serif;
+        font-weight: 700; /* User asked for Bold */
         background: #f4f6f9;
         -webkit-font-smoothing: antialiased;
     }
@@ -75,7 +76,7 @@
     }
 
     .font-bengali {
-        font-family: 'Hind Siliguri', 'Noto Sans Bengali', sans-serif;
+        font-family: 'SutonnyMJ', 'SutonnyOMJ', 'SolaimanLipi', 'Tiro Bangla', serif;
     }
 }
 
